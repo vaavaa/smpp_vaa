@@ -25,7 +25,7 @@ public class MyDBConnection {
 
             Class.forName("com.mysql.jdbc.Driver");
             myConnection=DriverManager.getConnection(
-                    "jdbc:mysql://localhost/smpp_clients","root", ""
+                    "jdbc:mysql://localhost/smpp_clients?characterEncoding=utf8","root", ""
             );
         }
         catch(Exception e){
