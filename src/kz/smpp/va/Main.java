@@ -59,7 +59,7 @@ public class Main {
                     log.debug("Started");
                     break;
                 case "stop":
-                    if (client.getSession() != null){
+                    if (client.getSession() != null && client.getSession().isBinding() ){
                         client.stop();
                         pool.shutdown();
                         log.debug("Stopped");

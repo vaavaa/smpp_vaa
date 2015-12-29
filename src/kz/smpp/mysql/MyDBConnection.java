@@ -119,7 +119,7 @@ public class MyDBConnection {
             if (rs.next()) {
                 l_client.setId(rs.getInt("id"));
                 l_client.setAddrs(rs.getLong("msisdn"));
-                l_client.setId(rs.getInt("status"));
+                l_client.setStatus(rs.getInt("status"));
             }
         }
         catch (SQLException ex) {
@@ -136,7 +136,7 @@ public class MyDBConnection {
             if (rs.next()) {
                 l_client.setId(rs.getInt("id"));
                 l_client.setAddrs(rs.getLong("msisdn"));
-                l_client.setId(rs.getInt("status"));
+                l_client.setStatus(rs.getInt("status"));
             }
         }
         catch (SQLException ex) {
@@ -166,7 +166,7 @@ public class MyDBConnection {
                 this.Update(sql_string);
                 l_client.setId(this.getLastId());
                 l_client.setAddrs(msisdn);
-                l_client.setId(0);
+                l_client.setStatus(0);
             }
         }
         catch (SQLException ex) {
@@ -195,4 +195,52 @@ public class MyDBConnection {
         }
         return lct;
     }
+
+    public boolean setNewClientsContentTypes(client l_client, ContentType contentType) {
+        boolean result= false;
+        String sql_string = "INSERT INTO client_content_type(id_client, id_content_type, status) " +
+                "VALUES ("+ l_client.getId() + ","+contentType.getId() +",0)";
+        try {
+            this.Update(sql_string);
+            result = true;
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return result;
+    }
+
+    public ContentType getContentType(int idtype){
+        ContentType ct = new ContentType();
+        String sql_string = "SELECT * FROM content_type WHERE id = "+ idtype;
+        try {
+            ResultSet rs = this.query(sql_string);
+            if (rs.next()) {
+                ct.setId(rs.getInt("id"));
+                ct.setAddrs(rs.getLong("msisdn"));
+                ct.setId(rs.getInt("status"));
+            }
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return ct;
+    }
+    public ContentType getContentType(String table_name){
+        ContentType ct = new ContentType();
+        String sql_string = "SELECT * FROM content_type WHERE table_name = '"+ table_name+"'";
+        try {
+            ResultSet rs = this.query(sql_string);
+            if (rs.next()) {
+                ct.setId(rs.getInt("id"));
+                ct.setAddrs(rs.getLong("msisdn"));
+                ct.setId(rs.getInt("status"));
+            }
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return ct;
+    }
+
 }

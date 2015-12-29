@@ -20,10 +20,7 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
 
     @Override
     public PduResponse firePduRequestReceived(PduRequest pduRequest) {
-        if (
-                pduRequest.isRequest()
-                        && pduRequest.getClass() == DeliverSm.class
-                ) {
+        if (pduRequest.isRequest() && pduRequest.getClass() == DeliverSm.class) {
             log.debug("Got DELIVER_SM");
 
             DeliverSm dlr = (DeliverSm)pduRequest;
@@ -34,11 +31,12 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
             String textBytes ="";
             textBytes = CharsetUtil.decode(textMessage, CharsetUtil.CHARSET_UCS_2);
 
-            dlr.getSequenceNumber()
+            PduResponse DSR = pduRequest.createResponse();
+            //Set back SequenceNumber
+            DSR.setSequenceNumber(dlr.getSequenceNumber());
 
-            return pduRequest.createResponse();
+            return DSR;
         }
-
         return super.firePduRequestReceived(pduRequest);
     }
 
