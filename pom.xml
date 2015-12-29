@@ -24,9 +24,18 @@
 
         <mysql.version>5.1.6</mysql.version>
         <org.jsoup>1.8.3</org.jsoup>
+
+        <org.ini4j>0.5.1</org.ini4j>
+
     </properties>
 
     <dependencies>
+
+        <dependency>
+            <groupId>org.ini4j</groupId>
+            <artifactId>ini4j</artifactId>
+            <version>${org.ini4j}</version>
+        </dependency>
 
         <dependency>
             <groupId>org.jsoup</groupId>
