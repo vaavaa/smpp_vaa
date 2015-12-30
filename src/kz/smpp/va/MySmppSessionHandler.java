@@ -5,14 +5,16 @@ import com.cloudhopper.smpp.PduAsyncResponse;
 import com.cloudhopper.smpp.SmppConstants;
 import com.cloudhopper.smpp.impl.DefaultSmppSessionHandler;
 import com.cloudhopper.smpp.pdu.*;
+import com.cloudhopper.smpp.type.Address;
 import kz.smpp.client.Client;
+import kz.smpp.utils.AllUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MySmppSessionHandler extends DefaultSmppSessionHandler {
     public static Logger log = LoggerFactory.getLogger(MySmppSessionHandler.class);
-
     protected Client client;
+    private AllUtils settings = new AllUtils();
 
     public MySmppSessionHandler(Client client) {
         this.client = client;
@@ -31,10 +33,15 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
             String textBytes ="";
             textBytes = CharsetUtil.decode(textMessage, CharsetUtil.CHARSET_UCS_2);
 
+            String arrd = dlr.getSourceAddress().getAddress();
+            Activity3200 A3200 = new Activity3200(Long.parseLong(arrd),
+                    settings.getSettings("welcome_message_durt"),client.getSession());
+            //Thread thread = new Thread();
+            //thread.start();
+            A3200.run();
             PduResponse DSR = pduRequest.createResponse();
             //Set back SequenceNumber
             DSR.setSequenceNumber(dlr.getSequenceNumber());
-
             return DSR;
         }
         return super.firePduRequestReceived(pduRequest);

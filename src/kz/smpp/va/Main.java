@@ -59,9 +59,9 @@ public class Main {
                     log.debug("Started");
                     break;
                 case "stop":
-                    if (client.getSession() != null && client.getSession().isBinding() ){
+                    if (client.getSession() != null){
                         client.stop();
-                        pool.shutdown();
+                        pool.shutdownNow();
                         log.debug("Stopped");
                     }
                     break;
@@ -126,7 +126,7 @@ public class Main {
     }
 
     public static void metcast(){
-        String StringToClear = settings.getSettings("StringToClear");;
+        String StringToClear = settings.getSettings("StringToClear");
         MyDBConnection mDBConnection = new MyDBConnection();
         String BaseURL = settings.getSettings("weather_link");
         try {
@@ -191,9 +191,11 @@ public class Main {
                     else message.setStep(""+result);
                 }
                 else message.setStep("+0");
+                int limit = message.getStep().length();
+                if (limit>5) limit = 5;
 
                 SQL_string = "INSERT INTO content_rate VALUES (NULL, 3, '"+ rate_date +"', '"
-                        +message.getTitle()+"', "+ message.getDescription()+", '"+message.getStep().substring(0,5)+"')";
+                        +message.getTitle()+"', "+ message.getDescription()+", '"+message.getStep().substring(0,limit)+"')";
                 mDBConnection.Update(SQL_string);
 
             }

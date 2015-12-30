@@ -196,8 +196,31 @@ public class MyDBConnection {
         return lct;
     }
 
+    public LinkedList<ContentType> getClientsContentTypes(client l_client, ContentType contenttype) {
+        LinkedList <ContentType> lct = new LinkedList<>();
+        String sql_string = "SELECT content_type.* FROM client_content_type left join content_type " +
+                "on content_type.id = client_content_type.id_content_type WHERE client_content_type.id_client = "+ l_client.getId() +" " +
+                " AND client_content_type.id_content_type = "+contenttype.getId();
+        try {
+            ResultSet rs = this.query(sql_string);
+            while (rs.next()) {
+                ContentType ct = new ContentType();
+                ct.setId(rs.getInt("id"));
+                ct.setName(rs.getString("name"));
+                ct.setName_eng(rs.getString("name_eng"));
+                ct.setTable_name(rs.getString("table_name"));
+                lct.add(ct);
+            }
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return lct;
+    }
+
     public boolean setNewClientsContentTypes(client l_client, ContentType contentType) {
         boolean result= false;
+
         String sql_string = "INSERT INTO client_content_type(id_client, id_content_type, status) " +
                 "VALUES ("+ l_client.getId() + ","+contentType.getId() +",0)";
         try {
@@ -217,8 +240,9 @@ public class MyDBConnection {
             ResultSet rs = this.query(sql_string);
             if (rs.next()) {
                 ct.setId(rs.getInt("id"));
-                ct.setAddrs(rs.getLong("msisdn"));
-                ct.setId(rs.getInt("status"));
+                ct.setName(rs.getString("name"));
+                ct.setName_eng(rs.getString("name_eng"));
+                ct.setTable_name(rs.getString("table_name"));
             }
         }
         catch (SQLException ex) {
@@ -233,8 +257,9 @@ public class MyDBConnection {
             ResultSet rs = this.query(sql_string);
             if (rs.next()) {
                 ct.setId(rs.getInt("id"));
-                ct.setAddrs(rs.getLong("msisdn"));
-                ct.setId(rs.getInt("status"));
+                ct.setName(rs.getString("name"));
+                ct.setName_eng(rs.getString("name_eng"));
+                ct.setTable_name(rs.getString("table_name"));
             }
         }
         catch (SQLException ex) {

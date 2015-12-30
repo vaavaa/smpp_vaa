@@ -1,10 +1,10 @@
 package kz.smpp.mysql;
 
 public class ContentType {
-    public int id;
-    public String name;
-    public String table_name;
-    public String name_eng;
+    private int id;
+    private String name;
+    private String table_name;
+    private String name_eng;
 
     public int getId() {
         return id;
