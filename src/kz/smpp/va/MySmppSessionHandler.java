@@ -30,20 +30,26 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
             byte[] textMessage = dlr.getShortMessage();
 
             //Получили текст сообщения
-            String textBytes ="";
-            textBytes = CharsetUtil.decode(textMessage, CharsetUtil.CHARSET_UCS_2);
+            String textBytes = CharsetUtil.decode(textMessage, CharsetUtil.CHARSET_UCS_2);
+            String transaction_id = dlr.getDestAddress().getAddress();
+            transaction_id = transaction_id.substring(transaction_id.lastIndexOf("#")+1,transaction_id.length());
 
+            //Запускаем цепочку обработки входящего сообщения и ответа не него
             String arrd = dlr.getSourceAddress().getAddress();
-            Activity3200 A3200 = new Activity3200(Long.parseLong(arrd),
-                    settings.getSettings("welcome_message_durt"),client.getSession());
-            //Thread thread = new Thread();
-            //thread.start();
-            A3200.run();
+            client.runIncomeMessageTask(Long.parseLong(arrd),settings.getSettings("welcome_message_durt"),Integer.parseInt(transaction_id));
+
             PduResponse DSR = pduRequest.createResponse();
             //Set back SequenceNumber
             DSR.setSequenceNumber(dlr.getSequenceNumber());
             return DSR;
         }
+        if (pduRequest.isRequest() && pduRequest.getClass() == EnquireLink.class) {
+            EnquireLink el = (EnquireLink)pduRequest;
+            EnquireLinkResp elr  = new EnquireLinkResp();
+            elr.setSequenceNumber(el.getSequenceNumber());
+            return elr;
+        }
+
         return super.firePduRequestReceived(pduRequest);
     }
 

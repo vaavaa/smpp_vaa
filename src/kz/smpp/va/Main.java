@@ -11,7 +11,9 @@ import com.cloudhopper.smpp.pdu.SubmitSmResp;
 import com.cloudhopper.smpp.type.LoggingOptions;
 import com.cloudhopper.smpp.type.SmppInvalidArgumentException;
 import kz.smpp.client.Client;
+import kz.smpp.mysql.ContentType;
 import kz.smpp.mysql.MyDBConnection;
+import kz.smpp.mysql.client;
 import kz.smpp.rome.*;
 import kz.smpp.utils.AllUtils;
 import kz.smpp.jsoup.ParseHtml;
@@ -22,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.LinkedList;
 import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -82,6 +85,8 @@ public class Main {
                     ascendant();
                     log.debug("Done. DB is updated with horoscope");
                     break;
+                case "test":
+                    Test();
                 default:
                     break;
             }
@@ -98,7 +103,7 @@ public class Main {
     public static void start_3200(){
 
             SmppSessionConfiguration sessionConfig = new SmppSessionConfiguration();
-
+            sessionConfig.setName("service_3200");
             sessionConfig.setType(SmppBindType.TRANSCEIVER);
             sessionConfig.setHost(settings.getSettings("ipadress"));
             sessionConfig.setPort(Integer.parseInt(settings.getSettings("port")));
@@ -227,6 +232,44 @@ public class Main {
             catch (SQLException ex) {
                 ex.printStackTrace();
 
+            }
+        }
+    }
+    public static void Test(){
+
+        MyDBConnection mDBConnection = new MyDBConnection() ;
+        String[] table_names= new String[Integer.parseInt(settings.getSettings("ServicesCount"))];
+        String services =  settings.getSettings("AvailableServices");
+        int i = 0;
+        while (services.lastIndexOf(";")>=0)
+        {
+            table_names[i]=services.substring(services.lastIndexOf(";")+1,services.length());
+            services = services.substring(0,services.lastIndexOf(";"));
+            i++;
+        }
+        client clnt = mDBConnection.setNewClient(77051970718L);
+        LinkedList<ContentType> llct= mDBConnection.getClientsContentTypes(clnt);
+        if (llct.size()==0){
+            ContentType contentType = mDBConnection.getContentType(settings.getSettings("FirstService"));
+            mDBConnection.setNewClientsContentTypes(clnt, contentType);
+        }
+        else {
+            for (int j = 0; j<=table_names.length-1;j++) {
+                for (ContentType ct : llct) {
+                    if (ct.getTable_name().equals(table_names[j])){
+                        table_names[j] = "";
+                        break;
+                    }
+
+                }
+            }
+            for (String str:table_names) {
+                if (str.length()>0)
+                {
+                    ContentType contentType = mDBConnection.getContentType(str);
+                    mDBConnection.setNewClientsContentTypes(clnt, contentType);
+                    break;
+                }
             }
         }
     }

@@ -28,9 +28,12 @@ public class Client implements Runnable {
 
 	protected ScheduledFuture<?> elinkTask;
 	protected ScheduledFuture<?> rebindTask;
+    protected ScheduledFuture<?> MessageTask;
 
 	protected long rebindPeriod = 5;
 	protected long elinkPeriod = 5;
+
+    protected int i;
 
 	public Client(SmppSessionConfiguration cfg) {
 		this.cfg = cfg;
@@ -73,6 +76,10 @@ public class Client implements Runnable {
 		this.elinkTask = this.timer.scheduleAtFixedRate(new ElinkTask(this), getElinkPeriod(), getElinkPeriod(), TimeUnit.SECONDS);
 	}
 
+	public void runIncomeMessageTask(long msisdn, String textMessage, int transaction_id){
+        this.timer.schedule(new IncomeMessageTask(this,msisdn,textMessage,transaction_id),0,TimeUnit.SECONDS);
+    }
+
 
 	public void bind() {
 		if (
@@ -109,7 +116,7 @@ public class Client implements Runnable {
 			if (rebindTask!=null) {
 				this.rebindTask.cancel(true);
 			}
-			runElinkTask();
+			//runElinkTask();
 		}
 	}
 
@@ -118,7 +125,7 @@ public class Client implements Runnable {
 
 		this.state = ClientState.STOPPING;
 
-		this.elinkTask.cancel(true);
+		//this.elinkTask.cancel(true);
 		this.rebindTask.cancel(true);
 		this.timer.shutdown();
 

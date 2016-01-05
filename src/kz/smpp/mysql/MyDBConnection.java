@@ -196,6 +196,36 @@ public class MyDBConnection {
         return lct;
     }
 
+    public client setStopClient(long msisdn){
+        client l_client = new client();
+        String sql_string = "SELECT * FROM clients WHERE msisdn= "+msisdn;
+        try {
+            ResultSet rs = this.query(sql_string);
+            if (rs.next()) {
+                if (rs.getInt("status") != 0){
+                    sql_string = "UPDATE clients SET  status = -1 WHERE msisdn ="+ msisdn;
+                    this.Update(sql_string);
+                }
+                else {
+                    l_client.setStatus(-1);
+                    l_client.setAddrs(msisdn);
+                    l_client.setId(rs.getInt("id"));
+                }
+            }
+            else{
+                sql_string = "INSERT INTO clients VALUES(null,"+ msisdn+",-1)";
+                this.Update(sql_string);
+                l_client.setId(this.getLastId());
+                l_client.setAddrs(msisdn);
+                l_client.setStatus(-1);
+            }
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return l_client;
+    }
+
     public LinkedList<ContentType> getClientsContentTypes(client l_client, ContentType contenttype) {
         LinkedList <ContentType> lct = new LinkedList<>();
         String sql_string = "SELECT content_type.* FROM client_content_type left join content_type " +
