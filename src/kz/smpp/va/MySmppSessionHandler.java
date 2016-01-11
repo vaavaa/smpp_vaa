@@ -15,6 +15,7 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
     public static Logger log = LoggerFactory.getLogger(MySmppSessionHandler.class);
     protected Client client;
     private AllUtils settings = new AllUtils();
+    public long timerElink = 0;
 
     public MySmppSessionHandler(Client client) {
         this.client = client;

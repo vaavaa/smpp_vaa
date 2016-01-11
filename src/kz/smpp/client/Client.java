@@ -116,7 +116,7 @@ public class Client implements Runnable {
 			if (rebindTask!=null) {
 				this.rebindTask.cancel(true);
 			}
-			//runElinkTask();
+			runElinkTask();
 		}
 	}
 
@@ -125,7 +125,7 @@ public class Client implements Runnable {
 
 		this.state = ClientState.STOPPING;
 
-		//this.elinkTask.cancel(true);
+		this.elinkTask.cancel(true);
 		this.rebindTask.cancel(true);
 		this.timer.shutdown();
 

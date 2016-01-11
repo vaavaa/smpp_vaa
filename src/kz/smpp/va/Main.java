@@ -62,10 +62,12 @@ public class Main {
                     log.debug("Started");
                     break;
                 case "stop":
-                    if (client.getSession() != null){
-                        client.stop();
-                        pool.shutdownNow();
-                        log.debug("Stopped");
+                    if (client!=null){
+                        if (client.getSession() != null){
+                            client.stop();
+                            pool.shutdownNow();
+                            log.debug("Stopped");
+                        }
                     }
                     break;
                 case "get rate":
@@ -114,6 +116,7 @@ public class Main {
             sessionConfig.setLoggingOptions(loggingOptions);
 
             client = new Client(sessionConfig);
+            client.setElinkPeriod(40);
             client.setSessionHandler(new MySmppSessionHandler(client));
             pool = Executors.newFixedThreadPool(2);
             pool.submit(client);
@@ -237,40 +240,6 @@ public class Main {
     }
     public static void Test(){
 
-        MyDBConnection mDBConnection = new MyDBConnection() ;
-        String[] table_names= new String[Integer.parseInt(settings.getSettings("ServicesCount"))];
-        String services =  settings.getSettings("AvailableServices");
-        int i = 0;
-        while (services.lastIndexOf(";")>=0)
-        {
-            table_names[i]=services.substring(services.lastIndexOf(";")+1,services.length());
-            services = services.substring(0,services.lastIndexOf(";"));
-            i++;
-        }
-        client clnt = mDBConnection.setNewClient(77051970718L);
-        LinkedList<ContentType> llct= mDBConnection.getClientsContentTypes(clnt);
-        if (llct.size()==0){
-            ContentType contentType = mDBConnection.getContentType(settings.getSettings("FirstService"));
-            mDBConnection.setNewClientsContentTypes(clnt, contentType);
-        }
-        else {
-            for (int j = 0; j<=table_names.length-1;j++) {
-                for (ContentType ct : llct) {
-                    if (ct.getTable_name().equals(table_names[j])){
-                        table_names[j] = "";
-                        break;
-                    }
 
-                }
-            }
-            for (String str:table_names) {
-                if (str.length()>0)
-                {
-                    ContentType contentType = mDBConnection.getContentType(str);
-                    mDBConnection.setNewClientsContentTypes(clnt, contentType);
-                    break;
-                }
-            }
-        }
     }
 }

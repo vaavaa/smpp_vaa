@@ -1,10 +1,11 @@
 package kz.smpp.client;
 
 import com.cloudhopper.commons.charset.CharsetUtil;
+import com.cloudhopper.commons.util.windowing.WindowFuture;
+import com.cloudhopper.smpp.SmppConstants;
 import com.cloudhopper.smpp.SmppSession;
-import com.cloudhopper.smpp.pdu.EnquireLink;
-import com.cloudhopper.smpp.pdu.SubmitSm;
-import com.cloudhopper.smpp.pdu.SubmitSmResp;
+import com.cloudhopper.smpp.pdu.*;
+import com.cloudhopper.smpp.tlv.Tlv;
 import com.cloudhopper.smpp.type.*;
 import kz.smpp.mysql.ContentType;
 import kz.smpp.mysql.MyDBConnection;
@@ -80,12 +81,34 @@ public class IncomeMessageTask implements Runnable {
                 String serviceName;
                 if (contentType.getName().length()==0) serviceName = settings.getSettings("AllServices");
                 else serviceName = contentType.getName();
-                message_text = message_text.replaceAll("/?",serviceName);
+                message_text = "test";//message_text.replaceAll("/?",serviceName);
                 int SequenceNumber = 1 + (int)(Math.random() * 32000);
-                SubmitSm sm = createSubmitSm( settings.getSettings("my_msisdn").concat("#"+transaction_id), Long.toString(msisdn), message_text, "UCS-2", SequenceNumber);
+
+                String client_msisdn = Long.toString(msisdn);
+                SubmitSm sm = createSubmitSm( settings.getSettings("my_msisdn").concat("#"+transaction_id),client_msisdn , message_text, "UCS-2", SequenceNumber);
+                Tlv tlv = new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, "3200".getBytes(),"3200");
+                sm.setOptionalParameter(tlv);
+
+                //Эта жопа не считала.
+                sm.calculateAndSetCommandLength();
+                log.debug("print SM "+sm.toString());
                 SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(60));
-                log.debug("SM sent successfull");
-                if (resp.getCommandId()!=0) log.debug("{}", resp.getCommandId());
+                log.debug("SM sent successfull",sm);
+                if (resp.getCommandStatus()!=0){
+                    log.debug("Submit issue is released");
+                    log.debug("{getCommandStatus}", ""+resp.getCommandStatus());
+                    log.debug("{getMessageId}", ""+ resp.getMessageId());
+                    QuerySm querySm = new QuerySm();
+                    querySm.setMessageId(resp.getMessageId());
+                    querySm.setSourceAddress(new Address((byte)0x00, (byte)0x01, settings.getSettings("my_msisdn")));
+
+                    WindowFuture<Integer,PduRequest,PduResponse> future1 = session.sendRequestPdu(querySm, 10000, true);
+                    log.debug("Status request is opened");
+                    while (!future1.isDone()) {}
+                    QuerySmResp queryResp = (QuerySmResp)future1.getResponse();
+                    log.debug("{The answer getMessageState}", ""+ queryResp.getMessageState());
+                }
+
             }
             catch (SmppTimeoutException |SmppChannelException
                     | UnrecoverablePduException | InterruptedException | RecoverablePduException ex){
@@ -98,19 +121,17 @@ public class IncomeMessageTask implements Runnable {
         // Для цифровых номеров указывается TON=0, NPI=1 (source_addr)
         // TON=0
         // NPI=1
-        sm.setSourceAddress(new Address((byte)0, (byte)1, src));
+        sm.setSourceAddress(new Address((byte)0x00, (byte)0x01, src));
         // For national numbers will use
         // TON=1
         // NPI=1
-        sm.setDestAddress(new Address((byte)1, (byte)1, dst));
+        sm.setDestAddress(new Address((byte)0x01, (byte)0x01, dst));
         // Set datacoding to UCS-2
-        sm.setDataCoding((byte)8);
+        sm.setDataCoding((byte)0);
         sm.setSequenceNumber(SequenceNumber);
 
         // Encode text
         sm.setShortMessage(CharsetUtil.encode(text, charset));
-
-        sm.calculateAndSetCommandLength();
         sm.setEsmClass((byte)0);
 
         return sm;
