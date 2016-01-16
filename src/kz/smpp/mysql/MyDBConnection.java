@@ -1,6 +1,9 @@
 package kz.smpp.mysql;
 
 
+import com.cloudhopper.smpp.SmppSession;
+import kz.smpp.utils.AllUtils;
+
 import java.sql.Statement;
 
 
@@ -296,6 +299,70 @@ public class MyDBConnection {
             ex.printStackTrace();
         }
         return ct;
+    }
+
+    public void setOperativeActivity(String id_client, String status, String id_operation){
+        String settingsValue=null;
+        MyDBConnection mDBConnection = new MyDBConnection();
+        try {
+            String SQL_string = "INSERT INTO operative_activity" +
+                    "(id_client, status, id_operation) " +
+                    "VALUES ("+id_client+","+status+","+id_operation+")";
+            mDBConnection.Update(SQL_string);
+
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    public String SignServiceName(Long msisdn){
+        //Получаем доступные сервисы из настроек
+        AllUtils settings = new AllUtils();
+        String[] table_names;
+        table_names= new String[Integer.parseInt(settings.getSettings("ServicesCount"))];
+        String services =  settings.getSettings("AvailableServices");
+        String message_text="";
+        int i = 0;
+        while (services.lastIndexOf(";")>=0)
+        {
+            table_names[i]=services.substring(services.lastIndexOf(";")+1,services.length());
+            services = services.substring(0,services.lastIndexOf(";"));
+            i++;
+        }
+
+        ContentType contentType;
+        contentType= getContentType("content_anecdot");
+        client clnt = setNewClient(msisdn);
+        LinkedList<ContentType> llct= getClientsContentTypes(clnt);
+        if (llct.size()==0){
+           contentType = getContentType(settings.getSettings("FirstService"));
+           setNewClientsContentTypes(clnt, contentType);
+        }
+        else {
+             for (int j = 0; j<=table_names.length-1;j++) {
+                 for (ContentType ct : llct) {
+                     if (ct.getTable_name().equals(table_names[j])){
+                        table_names[j] = "";
+                        break;
+                     }
+
+                 }
+             }
+             for (String str:table_names) {
+                 if (str.length()>0) {
+                    contentType = getContentType(str);
+                    setNewClientsContentTypes(clnt, contentType);
+                    break;
+                 }
+             }
+        }
+
+        String serviceName;
+        if (contentType.getName().length()==0) serviceName = settings.getSettings("AllServices");
+        else serviceName = contentType.getName();
+
+        return serviceName;
     }
 
 }

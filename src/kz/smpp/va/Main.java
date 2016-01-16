@@ -240,6 +240,10 @@ public class Main {
     }
     public static void Test(){
 
+        String message_text = "Поздравляем! Вы заинтересовались сервисом ?. Стоимость сервиса 20тг/день. Информация о сервисе по номеру *140#. Для прекращения подписки ответьте SMS с текстом STOP.";
+        String serviceName;
+        message_text = message_text.replace("?","");
+        log.debug(message_text);
 
     }
 }
