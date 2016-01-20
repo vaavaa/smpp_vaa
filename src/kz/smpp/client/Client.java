@@ -77,7 +77,12 @@ public class Client implements Runnable {
 	}
 
 	public void runIncomeMessageTask(long msisdn, String textMessage, int transaction_id){
-        this.timer.schedule(new IncomeMessageTask(this,msisdn,textMessage,transaction_id),0,TimeUnit.SECONDS);
+		this.timer.schedule(new IncomeMessageTask(this,msisdn,textMessage,transaction_id),0,TimeUnit.SECONDS);
+	}
+
+    //Устанавливаем переодичное задание на выполнение
+    public void runMessageSendTask(){
+        this.timer.scheduleAtFixedRate(new MessageSendTask(this),0,15,TimeUnit.SECONDS);
     }
 
 

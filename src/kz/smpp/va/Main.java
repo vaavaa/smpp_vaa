@@ -93,7 +93,6 @@ public class Main {
                     break;
             }
 
-
             try {
                 TimeUnit.SECONDS.sleep(1);
             } catch (InterruptedException ex) {
@@ -130,6 +129,13 @@ public class Main {
                 try {TimeUnit.SECONDS.sleep(1);}
                 catch (InterruptedException ex)
                 {java.util.logging.Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);}
+
+                //Проверяем есть ли что в client_session_140 больше по времени чем 2.5 минуты
+                //Если есть запускаем отправку сообщения follow up
+
+                //Проверяем есть ли что в sms_line со статусом 0
+                //Если есть запускаем отправку сообщения с нулевой тарификацией
+
             }
     }
 
@@ -240,10 +246,7 @@ public class Main {
     }
     public static void Test(){
 
-        String message_text = "Поздравляем! Вы заинтересовались сервисом ?. Стоимость сервиса 20тг/день. Информация о сервисе по номеру *140#. Для прекращения подписки ответьте SMS с текстом STOP.";
-        String serviceName;
-        message_text = message_text.replace("?","");
-        log.debug(message_text);
+
 
     }
 }

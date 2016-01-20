@@ -11,6 +11,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -249,6 +250,77 @@ public class MyDBConnection {
             ex.printStackTrace();
         }
         return lct;
+    }
+
+    public boolean setSingleSMS(SmsLine smsLine) {
+        String sql_string = "INSERT INTO sms_line(id_client, sms_body, status, transaction_id) " +
+                "VALUES ("+smsLine.getId_client()+",'"+smsLine.getSms_body()+"',"+smsLine.getStatus()+",'"+smsLine.getTransaction_id() +"')";
+        SmsLine sm = new SmsLine();
+        try {
+            this.Update(sql_string);
+            return true;
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
+        }
+    }
+
+    public SmsLine getSingleSMS(int sms_id) {
+        String sql_string = "SELECT id_sms, id_client, sms_body, status, " +
+                "transaction_id FROM sms_line WHERE id_sms="+sms_id;
+        SmsLine sm = new SmsLine();
+        try {
+            ResultSet rs = this.query(sql_string);
+            if (rs.next())  {
+                sm.setId_sms(rs.getInt("id_sms"));
+                sm.setId_client(rs.getInt("id_client"));
+                sm.setStatus(rs.getInt("status"));
+                sm.setTransaction_id(rs.getString("transaction_id"));
+                sm.setSms_body(rs.getString("sms_body"));
+            }
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return sm;
+    }
+    public List<SmsLine> getSMSLine(int line_status) {
+        List <SmsLine> smsLines = new ArrayList<>();
+        String sql_string = "SELECT id_sms, id_client, sms_body, status, " +
+                "transaction_id FROM sms_line WHERE status="+line_status;
+        try {
+            ResultSet rs = this.query(sql_string);
+            while (rs.next()) {
+                SmsLine sm = new SmsLine();
+                sm.setId_sms(rs.getInt("id_sms"));
+                sm.setId_client(rs.getInt("id_client"));
+                sm.setStatus(rs.getInt("status"));
+                sm.setTransaction_id(rs.getString("transaction_id"));
+                sm.setSms_body(rs.getString("sms_body"));
+                smsLines.add(sm);
+            }
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return smsLines;
+    }
+
+    public SmsLine UpdateSMSLine(SmsLine smsLine) {
+        String sql_string = "UPDATE sms_line" +
+                " SET id_client="+smsLine.getId_client()+","+
+                " sms_body='"+smsLine.getSms_body()+"',"+
+                " status="+smsLine.getStatus()+","+
+                " transaction_id='"+smsLine.getTransaction_id()+"'" +
+                " WHERE id_sms="+ smsLine.getId_sms();
+        try{
+            this.Update(sql_string);
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return smsLine;
     }
 
     public boolean setNewClientsContentTypes(client l_client, ContentType contentType) {

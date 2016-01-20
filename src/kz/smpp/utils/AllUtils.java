@@ -66,10 +66,10 @@ public class AllUtils {
         //For UCS-2 you get 1072/16 = 67 (16-bit) chars in UDH structure,
         // but we gonna use OptionalParameter so 1120 - (4*8) =  (message length/ 16bits UCS-2 coding and we got 70 but we have 4 )
 
-        int numberOfSegments = long_Message.length / 66;
+        int numberOfSegments = long_Message.length / 70;
         int messageLength = long_Message.length;
 
-        List <byte[]> byteArr = divideArray(long_Message,66);
+        List <byte[]> byteArr = divideArray(long_Message,70);
 
 
         // generate new reference number
@@ -106,7 +106,7 @@ public class AllUtils {
         return sm_list;
     }
 
-    private byte[] IntToByteArray( int data ) {
+    public byte[] IntToByteArray( int data ) {
 
         byte[] result = new byte[4];
 
@@ -130,5 +130,65 @@ public class AllUtils {
 
         return result;
     }
+
+    public void sendLongMessage(String msisdn, String message, String senderAddr) throws Exception {
+
+
+    }
+
+    public  byte[][] splitUnicodeMessage(byte[] aMessage, Integer maximumMultipartMessageSegmentSize) {
+        final byte UDHIE_HEADER_LENGTH = 0x05;
+        final byte UDHIE_IDENTIFIER_SAR = 0x00;
+        final byte UDHIE_SAR_LENGTH = 0x03;
+
+        // determine how many messages have to be sent
+        int numberOfSegments = aMessage.length / maximumMultipartMessageSegmentSize;
+        int messageLength = aMessage.length;
+        if (numberOfSegments > 255) {
+            numberOfSegments = 255;
+            messageLength = numberOfSegments * maximumMultipartMessageSegmentSize;
+        }
+        if ((messageLength % maximumMultipartMessageSegmentSize) > 0) {
+            numberOfSegments++;
+        }
+
+        // prepare array for all of the msg segments
+        byte[][] segments = new byte[numberOfSegments][];
+
+        int lengthOfData;
+
+        // generate new reference number
+        byte[] referenceNumber = new byte[1];
+        new Random().nextBytes(referenceNumber);
+
+        // split the message adding required headers
+        for (int i = 0; i < numberOfSegments; i++) {
+            if (numberOfSegments - i == 1) {
+                lengthOfData = messageLength - i * maximumMultipartMessageSegmentSize;
+            } else {
+                lengthOfData = maximumMultipartMessageSegmentSize;
+            }
+            // new array to store the header
+            segments[i] = new byte[6 + lengthOfData];
+
+            // UDH header
+            // doesn't include itself, its header length
+            segments[i][0] = UDHIE_HEADER_LENGTH;
+            // SAR identifier
+            segments[i][1] = UDHIE_IDENTIFIER_SAR;
+            // SAR length
+            segments[i][2] = UDHIE_SAR_LENGTH;
+            // reference number (same for all messages)
+            segments[i][3] = referenceNumber[0];
+            // total number of segments
+            segments[i][4] = (byte) numberOfSegments;
+            // segment number
+            segments[i][5] = (byte) (i + 1);
+            // copy the data into the array
+            System.arraycopy(aMessage, (i * maximumMultipartMessageSegmentSize), segments[i], 6, lengthOfData);
+        }
+        return segments;
+    }
+
 
 }
