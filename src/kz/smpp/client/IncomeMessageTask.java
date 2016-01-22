@@ -27,12 +27,12 @@ public class IncomeMessageTask implements Runnable {
     private int transaction_id;
 
 
-    public IncomeMessageTask(Client client, long imsisdn, String imessage_text, int tran_id) {
+    public IncomeMessageTask(Client client, long imsisdn, String imessage_text, int tran_id, MyDBConnection mDBConn) {
         this.client = client;
         msisdn = imsisdn;
         message_text = imessage_text;
         transaction_id = tran_id;
-        mDBConnection = new MyDBConnection();
+        this.mDBConnection = mDBConn;
     }
 
     @Override

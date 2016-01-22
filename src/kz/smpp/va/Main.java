@@ -13,6 +13,7 @@ import com.cloudhopper.smpp.type.SmppInvalidArgumentException;
 import kz.smpp.client.Client;
 import kz.smpp.mysql.ContentType;
 import kz.smpp.mysql.MyDBConnection;
+import kz.smpp.mysql.SmsLine;
 import kz.smpp.mysql.client;
 import kz.smpp.rome.*;
 import kz.smpp.utils.AllUtils;
@@ -25,6 +26,7 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -37,6 +39,7 @@ public class Main {
     static Client client;
     static ExecutorService pool;
     static AllUtils settings = new AllUtils();
+    static MyDBConnection mDBConnection = new MyDBConnection();
 
 	private static void log(WindowFuture<Integer, PduRequest, PduResponse> future) {
 		SubmitSm req = (SubmitSm)future.getRequest();
@@ -114,10 +117,10 @@ public class Main {
             LoggingOptions loggingOptions = new LoggingOptions();
             sessionConfig.setLoggingOptions(loggingOptions);
 
-            client = new Client(sessionConfig);
+            client = new Client(sessionConfig, mDBConnection);
             client.setElinkPeriod(40);
-            client.setSessionHandler(new MySmppSessionHandler(client));
-            pool = Executors.newFixedThreadPool(2);
+            client.setSessionHandler(new MySmppSessionHandler(client,mDBConnection));
+            pool = Executors.newFixedThreadPool(4);
             pool.submit(client);
 
             client.start();
@@ -141,7 +144,6 @@ public class Main {
 
     public static void metcast(){
         String StringToClear = settings.getSettings("StringToClear");
-        MyDBConnection mDBConnection = new MyDBConnection();
         String BaseURL = settings.getSettings("weather_link");
         try {
             String SQL_string = "SELECT city_get_arrg, id_city FROM city_directory";
@@ -181,9 +183,6 @@ public class Main {
     public static void rate(){
         RSSFeedParser parser = new RSSFeedParser(settings.getSettings("rate_link"));
         Feed feed = parser.readFeed();
-        MyDBConnection mDBConnection = new MyDBConnection();
-
-
         for (FeedMessage message : feed.getMessages()) {
             String rate_date =  parser.Convert_Date(message.getPubDate(),"","");
             try {
@@ -221,8 +220,6 @@ public class Main {
     public static void ascendant(){
         RSSFeedParser parser = new RSSFeedParser(settings.getSettings("ascendent"));
         Feed feed = parser.readFeed();
-        MyDBConnection mDBConnection = new MyDBConnection();
-
 
         for (FeedMessage message : feed.getMessages()) {
             String rate_date = message.getPubDate();
@@ -245,8 +242,6 @@ public class Main {
         }
     }
     public static void Test(){
-
-
 
     }
 }

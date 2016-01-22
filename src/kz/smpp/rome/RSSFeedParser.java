@@ -137,8 +137,6 @@ public class RSSFeedParser {
     public String Convert_Date(String oldDateString, String OLD_FORMAT, String NEW_FORMAT){
         if (OLD_FORMAT.length()==0) OLD_FORMAT = "dd.MM.yy";
         if (NEW_FORMAT.length()==0) NEW_FORMAT= "yyyy-MM-dd";
-
-        // August 12, 2010
         String newDateString;
 
         SimpleDateFormat sdf = new SimpleDateFormat(OLD_FORMAT, Locale.ENGLISH);

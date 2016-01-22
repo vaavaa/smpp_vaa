@@ -149,7 +149,7 @@ public class MyDBConnection {
         return l_client;
     }
 
-    public client setNewClient(long msisdn){
+    public client setNewClient(long msisdn, String sms_text){
         client l_client = new client();
         String sql_string = "SELECT * FROM clients WHERE msisdn= "+msisdn;
         try {
@@ -159,11 +159,9 @@ public class MyDBConnection {
                     sql_string = "UPDATE clients SET  status = 0 WHERE msisdn ="+ msisdn;
                     this.Update(sql_string);
                 }
-                else {
-                    l_client.setStatus(0);
-                    l_client.setAddrs(msisdn);
-                    l_client.setId(rs.getInt("id"));
-                }
+                l_client.setStatus(0);
+                l_client.setAddrs(msisdn);
+                l_client.setId(rs.getInt("id"));
             }
             else{
                 sql_string = "INSERT INTO clients VALUES(null,"+ msisdn+",0)";
@@ -172,6 +170,9 @@ public class MyDBConnection {
                 l_client.setAddrs(msisdn);
                 l_client.setStatus(0);
             }
+            sql_string = "INSERT INTO client_activity(id_client, activity_text)" +
+                    " VALUES ("+l_client.getId()+",'"+sms_text+"')";
+            this.Update(sql_string);
         }
         catch (SQLException ex) {
             ex.printStackTrace();
@@ -252,11 +253,14 @@ public class MyDBConnection {
         return lct;
     }
 
-    public boolean setSingleSMS(SmsLine smsLine) {
+    public boolean setSingleSMS(SmsLine smsLine, String sms_text) {
         String sql_string = "INSERT INTO sms_line(id_client, sms_body, status, transaction_id) " +
                 "VALUES ("+smsLine.getId_client()+",'"+smsLine.getSms_body()+"',"+smsLine.getStatus()+",'"+smsLine.getTransaction_id() +"')";
         SmsLine sm = new SmsLine();
         try {
+            this.Update(sql_string);
+            sql_string = "INSERT INTO client_activity(id_client, activity_text)" +
+                    " VALUES ("+smsLine.getId_client()+",'"+sms_text+"')";
             this.Update(sql_string);
             return true;
         }
@@ -307,6 +311,34 @@ public class MyDBConnection {
         return smsLines;
     }
 
+    public boolean getFollowUpLine() {
+        boolean result = false;
+        AllUtils settings = new AllUtils();
+        String sql_string = "INSERT INTO sms_line(id_client, sms_body, status)"+
+        " SELECT client_session_140.id_client, '"+settings.getSettings("welcome_message_fail_session")+"', '0' FROM client_session_140 " +
+                "WHERE now()>  DATE_ADD(client_session_140.time, INTERVAL 120 SECOND)";
+        try {
+            this.Update(sql_string);
+            result = true;
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return result;
+    }
+
+    public boolean RemoveDeadSessions() {
+        boolean result = false;
+        String sql_string =
+        "DELETE FROM client_session_140 WHERE NOW() > DATE_ADD(client_session_140.time, INTERVAL 120 SECOND)";
+        try {
+            this.Update(sql_string);
+            result = true;
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return result;
+    }
+
     public SmsLine UpdateSMSLine(SmsLine smsLine) {
         String sql_string = "UPDATE sms_line" +
                 " SET id_client="+smsLine.getId_client()+","+
@@ -322,7 +354,20 @@ public class MyDBConnection {
         }
         return smsLine;
     }
+    public boolean RemoveClientsContentTypes(client l_client, ContentType contentType) {
+        boolean result= false;
 
+        String sql_string = "DELETE FROM client_content_type " +
+                "WHERE  id_client = "+ l_client.getId() + " AND id_content_type ="+contentType.getId() +"";
+        try {
+            this.Update(sql_string);
+            result = true;
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return result;
+    }
     public boolean setNewClientsContentTypes(client l_client, ContentType contentType) {
         boolean result= false;
 
@@ -388,7 +433,41 @@ public class MyDBConnection {
         }
     }
 
-    public String SignServiceName(Long msisdn){
+    public String RemoveServiceName(Long msisdn){
+        //Получаем доступные сервисы из настроек
+        AllUtils settings = new AllUtils();
+        String[] table_names;
+        table_names= new String[Integer.parseInt(settings.getSettings("ServicesCount"))];
+        String services =  settings.getSettings("AvailableServices");
+        String message_text="";
+        String serviceName = "";
+        int i = 0;
+        while (services.lastIndexOf(";")>=0)
+        {
+            table_names[i]=services.substring(services.lastIndexOf(";")+1,services.length());
+            services = services.substring(0,services.lastIndexOf(";"));
+            i++;
+        }
+        client clnt = getClient(msisdn);
+        LinkedList<ContentType> llct= getClientsContentTypes(clnt);
+        //Ничего нет удалять.
+        if (llct.size()!=0){
+            for (int j = 0; j<=table_names.length-1;j++) {
+                for (ContentType ct : llct) {
+                    if (ct.getTable_name().equals(table_names[j])){
+                        serviceName = ct.getName();
+                        RemoveClientsContentTypes(clnt,ct);
+                        break;
+                    }
+
+                }
+            }
+        }
+        return serviceName;
+    }
+
+
+    public String SignServiceName(Long msisdn, String sms_text){
         //Получаем доступные сервисы из настроек
         AllUtils settings = new AllUtils();
         String[] table_names;
@@ -405,7 +484,7 @@ public class MyDBConnection {
 
         ContentType contentType;
         contentType= getContentType("content_anecdot");
-        client clnt = setNewClient(msisdn);
+        client clnt = setNewClient(msisdn, sms_text);
         LinkedList<ContentType> llct= getClientsContentTypes(clnt);
         if (llct.size()==0){
            contentType = getContentType(settings.getSettings("FirstService"));

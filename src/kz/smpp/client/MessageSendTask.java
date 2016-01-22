@@ -25,9 +25,9 @@ public class MessageSendTask implements Runnable {
     private int transaction_id;
 
 
-    public MessageSendTask(Client client) {
+    public MessageSendTask(Client client,MyDBConnection mDBConn) {
         this.client = client;
-        mDBConnection = new MyDBConnection();
+        this.mDBConnection = mDBConn;
     }
 
     @Override
@@ -44,7 +44,10 @@ public class MessageSendTask implements Runnable {
                     byte[] textBytes = CharsetUtil.encode(single_sm.getSms_body(), "UCS-2");
 
                     SubmitSm sm = new SubmitSm();
-                    sm.setSourceAddress(new Address((byte)0x00, (byte)0x01,  settings.getSettings("my_msisdn").concat("#"+single_sm.getTransaction_id())));
+                    if (single_sm.getTransaction_id().length()>0)
+                        sm.setSourceAddress(new Address((byte)0x00, (byte)0x01,  settings.getSettings("my_msisdn").concat("#"+single_sm.getTransaction_id())));
+                    else
+                        sm.setSourceAddress(new Address((byte)0x00, (byte)0x01,  settings.getSettings("my_msisdn")));
                     sm.setDestAddress(new Address((byte)0x01, (byte)0x01, client_msisdn));
                     sm.setDataCoding((byte)8);
                     sm.setEsmClass((byte)0);
@@ -55,7 +58,7 @@ public class MessageSendTask implements Runnable {
                     sm.calculateAndSetCommandLength();
 
                     SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(60));
-                    log.debug("SM sent successfull" + sm.toString());
+                    log.debug("SM sent" + sm.toString());
 
                     if (resp.getCommandStatus()!=0){
                             log.debug("Submit issue is released");
@@ -69,6 +72,12 @@ public class MessageSendTask implements Runnable {
                             while (!future1.isDone()) {}
                             QuerySmResp queryResp = (QuerySmResp)future1.getResponse();
                             log.debug("{The answer getMessageState}" + queryResp.toString());
+                        single_sm.setStatus(-1);
+                        mDBConnection.UpdateSMSLine(single_sm);
+                    }
+                    else {
+                        single_sm.setStatus(1);
+                        mDBConnection.UpdateSMSLine(single_sm);
                     }
                 }
                 catch (SmppTimeoutException |SmppChannelException

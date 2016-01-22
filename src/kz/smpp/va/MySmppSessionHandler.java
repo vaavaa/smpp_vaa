@@ -8,6 +8,7 @@ import com.cloudhopper.smpp.pdu.*;
 import com.cloudhopper.smpp.type.Address;
 import kz.smpp.client.Client;
 import kz.smpp.mysql.MyDBConnection;
+import kz.smpp.mysql.SmsLine;
 import kz.smpp.utils.AllUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,11 +17,12 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
     public static Logger log = LoggerFactory.getLogger(MySmppSessionHandler.class);
     protected Client client;
     private AllUtils settings = new AllUtils();
-    MyDBConnection mDBConnection = new MyDBConnection();
+    MyDBConnection mDBConnection;
     String text_message="";
 
-    public MySmppSessionHandler(Client client) {
+    public MySmppSessionHandler(Client client, MyDBConnection mDBCon) {
         this.client = client;
+        this.mDBConnection = mDBCon;
     }
 
     @Override
@@ -30,7 +32,7 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
 
             DeliverSm dlr = (DeliverSm)pduRequest;
 
-            Integer command_respond = 0x600; //по умолчанию ошибка на нашей стороне
+ //           Integer command_respond = 0x600; //по умолчанию ошибка на нашей стороне
 //            0x00 — если абонент подписался на услугу;
 //            0x551 — если абонент запрашивает повторную подписку или отписку на услугу;
 //            0x552 — если абонент запрашивает подписку или отписку на услугу с указанием неправильного номера услуги;
@@ -49,23 +51,38 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
             Long l_addr = Long.parseLong(arrd);
 
 
-            //Получили текст сообщения
-            String textBytes = CharsetUtil.decode(textMessage, CharsetUtil.CHARSET_UCS_2);
-            switch (textBytes){
-                case "STOP":
+            //Получили текст сообщения c проверкой кодировки
+            String textBytes = "";
+            if (dlr.getDataCoding()==0x08) textBytes = CharsetUtil.decode(textMessage, "UCS-2");
+            else  textBytes = CharsetUtil.decode(textMessage,"GSM");
+
+
+
+            switch (textBytes.toLowerCase()){
+                case "стоп": case "stop":
                     //Запускаем цепочку обработки входящего сообщения в случае если стоп
-                    client.runIncomeMessageTask(l_addr,settings.getSettings("message_stop"),Integer.parseInt(transaction_id));
+                    String service_to_remove =  mDBConnection.RemoveServiceName(l_addr);
+//                    if (service_to_remove.length()>0)command_respond = 0x551;
+//                    else command_respond = 0x555;
+                    SmsLine StopSms = new SmsLine();
+                    StopSms.setStatus(0);
+                    StopSms.setSms_body(settings.getSettings("message_stop").replace("?",service_to_remove));
+                    StopSms.setId_client(mDBConnection.getClient(l_addr).getId());
+                    StopSms.setTransaction_id(transaction_id);
+                    mDBConnection.setSingleSMS(StopSms, textBytes);
+                    //Далее эту ветку обработает нить которая отправляет СМС
+
                     break;
                 default:
                     //Получаем на что абонент подписался
-                    String service = mDBConnection.SignServiceName(l_addr);
+                    String service = mDBConnection.SignServiceName(l_addr, textBytes);
                     //Если он на все подписан
                     if (service.equals("all")) {
-                        command_respond = 0x551;
+//                        command_respond = 0x551;
                         text_message = settings.getSettings("AllServices_message");
                     }
                     else {
-                        command_respond = 0x00;
+//                        command_respond = 0x00;
                         text_message = settings.getSettings("welcome_message_3200");
                         text_message = text_message.replace("?",service);
                     }
@@ -78,7 +95,7 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
             PduResponse DSR = pduRequest.createResponse();
             //Set back SequenceNumber
             DSR.setSequenceNumber(dlr.getSequenceNumber());
-            DSR.setCommandStatus(command_respond);
+//            DSR.setCommandStatus(command_respond);
             return DSR;
         }
         if (pduRequest.isRequest() && pduRequest.getClass() == EnquireLink.class) {

@@ -5,6 +5,7 @@ import com.cloudhopper.smpp.SmppSession;
 import com.cloudhopper.smpp.SmppSessionConfiguration;
 import com.cloudhopper.smpp.SmppSessionHandler;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
+import kz.smpp.mysql.MyDBConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,16 +29,18 @@ public class Client implements Runnable {
 
 	protected ScheduledFuture<?> elinkTask;
 	protected ScheduledFuture<?> rebindTask;
-    protected ScheduledFuture<?> MessageTask;
+    protected ScheduledFuture<?> messageTask;
+    protected ScheduledFuture<?> deadSessionTask;
 
 	protected long rebindPeriod = 5;
 	protected long elinkPeriod = 5;
 
+    protected MyDBConnection mDBConnection;
     protected int i;
 
-	public Client(SmppSessionConfiguration cfg) {
+	public Client(SmppSessionConfiguration cfg, MyDBConnection mDBCon ) {
 		this.cfg = cfg;
-
+        this.mDBConnection = mDBCon;
 		this.timer = Executors.newScheduledThreadPool(2);
 	}
 
@@ -77,12 +80,16 @@ public class Client implements Runnable {
 	}
 
 	public void runIncomeMessageTask(long msisdn, String textMessage, int transaction_id){
-		this.timer.schedule(new IncomeMessageTask(this,msisdn,textMessage,transaction_id),0,TimeUnit.SECONDS);
+		this.timer.schedule(new IncomeMessageTask(this,msisdn,textMessage,transaction_id, mDBConnection),0,TimeUnit.SECONDS);
 	}
 
     //Устанавливаем переодичное задание на выполнение
     public void runMessageSendTask(){
-        this.timer.scheduleAtFixedRate(new MessageSendTask(this),0,15,TimeUnit.SECONDS);
+        this.messageTask = this.timer.scheduleAtFixedRate(new MessageSendTask(this, mDBConnection),0,20,TimeUnit.SECONDS);
+    }
+    //Устанавливаем переодичное задание на выполнение
+    public void runDeadSessionTask(){
+        this.deadSessionTask = this.timer.scheduleAtFixedRate(new DeadSessionTask(mDBConnection),0,120,TimeUnit.SECONDS);
     }
 
 
@@ -122,6 +129,8 @@ public class Client implements Runnable {
 				this.rebindTask.cancel(true);
 			}
 			runElinkTask();
+            runMessageSendTask();
+            runDeadSessionTask();
 		}
 	}
 
@@ -132,6 +141,8 @@ public class Client implements Runnable {
 
 		this.elinkTask.cancel(true);
 		this.rebindTask.cancel(true);
+        this.messageTask.cancel(true);
+        deadSessionTask.cancel(true);
 		this.timer.shutdown();
 
 		this.timer = null;
