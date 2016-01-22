@@ -6,7 +6,9 @@ import kz.smpp.rome.Feed;
 import kz.smpp.rome.FeedMessage;
 import kz.smpp.rome.RSSFeedParser;
 import kz.smpp.utils.AllUtils;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.sql.Statement;
 
 
@@ -14,15 +16,20 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.*;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Date;
 
 
 public class MyDBConnection {
 
     private static Connection myConnection;
     private Statement statement;
+    public static final org.slf4j.Logger log = LoggerFactory.getLogger(MyDBConnection.class);
 
     public MyDBConnection() {
         init();
@@ -536,6 +543,48 @@ public class MyDBConnection {
 
         return serviceName;
     }
+    public void setHoroscopeLine(Date dte) {
+        DateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
+    }
+
+    public boolean backupData(String dumpExePath, String host, String port, String user, String password, String database, String backupPath) {
+        boolean status = false;
+        try {
+            Process p = null;
+
+            DateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
+            Date date =new Date(System.currentTimeMillis());
+            String filepath = "backup(without_DB)-" + database + "-" + host + "-(" + dateFormat.format(date) + ").sql";
+
+            String batchCommand = "";
+            if (password != "") {
+                //only backup the data not included create database
+                batchCommand = dumpExePath + " -h " + host + " --port " + port + " -u " + user + " --password=" + password + " " + database + " -r \"" + backupPath + "" + filepath + "\"";
+            } else {
+                batchCommand = dumpExePath + " -h " + host + " --port " + port + " -u " + user + " " + database + " -r \"" + backupPath + "" + filepath + "\"";
+            }
+
+            Runtime runtime = Runtime.getRuntime();
+            p = runtime.exec(batchCommand);
+            int processComplete = p.waitFor();
+
+            if (processComplete == 0) {
+                status = true;
+                log.info("Backup created successfully for without DB " + database + " in " + host + ":" + port);
+            } else {
+                status = false;
+                log.info("Could not create the backup for without DB " + database + " in " + host + ":" + port);
+            }
+
+        } catch (IOException ioe) {
+            log.error(ioe.toString() +"/"+ ioe.getCause().toString());
+        } catch (Exception e) {
+            log.error(e.toString()+"/"+ e.getCause().toString());
+        }
+        return status;
+    }
+
+
 
     public void metcast(){
         AllUtils settings = new AllUtils();

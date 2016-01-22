@@ -5,6 +5,7 @@ import kz.smpp.mysql.MyDBConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.Calendar;
+import java.util.Locale;
 
 public class FeedContentTask implements  Runnable {
 
@@ -17,8 +18,8 @@ public class FeedContentTask implements  Runnable {
 	@Override
 	public void run() {
         Calendar cal = Calendar.getInstance();
-        int currentHour = cal.get(Calendar.HOUR);
-        if (currentHour > 23) {
+        int currentHour = cal.get(Calendar.HOUR_OF_DAY);
+        if (currentHour > 22 && currentHour <= 23) {
             //then rock on
             mDBConnection.rate();
             log.debug("Done. DB is updated with rate");

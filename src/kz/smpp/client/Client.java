@@ -32,6 +32,9 @@ public class Client implements Runnable {
     protected ScheduledFuture<?> messageTask;
     protected ScheduledFuture<?> deadSessionTask;
 	protected ScheduledFuture<?> FContTask;
+    protected ScheduledFuture<?> SysTask;
+    protected ScheduledFuture<?> HoroscopeTask;
+
 
 	protected long rebindPeriod = 5;
 	protected long elinkPeriod = 5;
@@ -88,14 +91,24 @@ public class Client implements Runnable {
     public void runMessageSendTask(){
         this.messageTask = this.timer.scheduleAtFixedRate(new MessageSendTask(this, mDBConnection),0,20,TimeUnit.SECONDS);
     }
-    //Устанавливаем переодичное задание на выполнение
+    //Устанавливаем переодичное задание на выполнение повисшие сессии переходят в сообщения
     public void runDeadSessionTask(){
         this.deadSessionTask = this.timer.scheduleAtFixedRate(new DeadSessionTask(mDBConnection),0,120,TimeUnit.SECONDS);
     }
-	//Устанавливаем переодичное задание на выполнение
+	//Устанавливаем переодичное задание на выполнение пополнение контента
 	public void runFeedContentTask(){
 		this.FContTask = this.timer.scheduleAtFixedRate(new FeedContentTask(mDBConnection),0,1,TimeUnit.HOURS);
 	}
+	//Устанавливаем переодичное задание на выполнение посылка гороскопа
+    public void runHoroscopeSendTask(){
+        this.HoroscopeTask = this.timer.scheduleAtFixedRate(new HoroscopeSendTask(this,mDBConnection),0,10,TimeUnit.MINUTES);
+    }
+
+    //Устанавливаем переодичное задание на выполнение бакапирование и заливку на гугл драйв
+    public void runSystemServiceTask(){
+        this.SysTask = this.timer.scheduleAtFixedRate(new SystemServiceTask(mDBConnection),0,1,TimeUnit.HOURS);
+    }
+
 
 	public void bind() {
 		if (
@@ -136,6 +149,8 @@ public class Client implements Runnable {
             runMessageSendTask();
             runDeadSessionTask();
 			runFeedContentTask();
+            runHoroscopeSendTask();
+            runSystemServiceTask();
 		}
 	}
 
@@ -149,6 +164,8 @@ public class Client implements Runnable {
         this.messageTask.cancel(true);
         deadSessionTask.cancel(true);
 		FContTask.cancel(true);
+        SysTask.cancel(true);
+        HoroscopeTask.cancel(true);
 		this.timer.shutdown();
 
 		this.timer = null;
