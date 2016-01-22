@@ -18,11 +18,8 @@ import java.util.concurrent.TimeUnit;
 public class MessageSendTask implements Runnable {
     public static final org.slf4j.Logger log = LoggerFactory.getLogger(MessageSendTask.class);
     protected Client client;
-    private long msisdn = -1;
-    private String message_text;
     private MyDBConnection mDBConnection;
-    private AllUtils settings = new AllUtils();
-    private int transaction_id;
+
 
 
     public MessageSendTask(Client client,MyDBConnection mDBConn) {
@@ -45,9 +42,9 @@ public class MessageSendTask implements Runnable {
 
                     SubmitSm sm = new SubmitSm();
                     if (single_sm.getTransaction_id().length()>0)
-                        sm.setSourceAddress(new Address((byte)0x00, (byte)0x01,  settings.getSettings("my_msisdn").concat("#"+single_sm.getTransaction_id())));
+                        sm.setSourceAddress(new Address((byte)0x00, (byte)0x01,  mDBConnection.getSettings("my_msisdn").concat("#"+single_sm.getTransaction_id())));
                     else
-                        sm.setSourceAddress(new Address((byte)0x00, (byte)0x01,  settings.getSettings("my_msisdn")));
+                        sm.setSourceAddress(new Address((byte)0x00, (byte)0x01,  mDBConnection.getSettings("my_msisdn")));
                     sm.setDestAddress(new Address((byte)0x01, (byte)0x01, client_msisdn));
                     sm.setDataCoding((byte)8);
                     sm.setEsmClass((byte)0);
@@ -65,7 +62,7 @@ public class MessageSendTask implements Runnable {
                             log.debug("{resp} "+resp.toString());
                             QuerySm querySm = new QuerySm();
                             querySm.setMessageId(resp.getMessageId());
-                            querySm.setSourceAddress(new Address((byte)0x00, (byte)0x01, settings.getSettings("my_msisdn")));
+                            querySm.setSourceAddress(new Address((byte)0x00, (byte)0x01, mDBConnection.getSettings("my_msisdn")));
                             querySm.calculateAndSetCommandLength();
                             WindowFuture<Integer,PduRequest,PduResponse> future1 = session.sendRequestPdu(querySm, 10000, true);
                             log.debug("Status request is opened");

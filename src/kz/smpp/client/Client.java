@@ -31,6 +31,7 @@ public class Client implements Runnable {
 	protected ScheduledFuture<?> rebindTask;
     protected ScheduledFuture<?> messageTask;
     protected ScheduledFuture<?> deadSessionTask;
+	protected ScheduledFuture<?> FContTask;
 
 	protected long rebindPeriod = 5;
 	protected long elinkPeriod = 5;
@@ -91,7 +92,10 @@ public class Client implements Runnable {
     public void runDeadSessionTask(){
         this.deadSessionTask = this.timer.scheduleAtFixedRate(new DeadSessionTask(mDBConnection),0,120,TimeUnit.SECONDS);
     }
-
+	//Устанавливаем переодичное задание на выполнение
+	public void runFeedContentTask(){
+		this.FContTask = this.timer.scheduleAtFixedRate(new FeedContentTask(mDBConnection),0,1,TimeUnit.HOURS);
+	}
 
 	public void bind() {
 		if (
@@ -131,6 +135,7 @@ public class Client implements Runnable {
 			runElinkTask();
             runMessageSendTask();
             runDeadSessionTask();
+			runFeedContentTask();
 		}
 	}
 
@@ -143,6 +148,7 @@ public class Client implements Runnable {
 		this.rebindTask.cancel(true);
         this.messageTask.cancel(true);
         deadSessionTask.cancel(true);
+		FContTask.cancel(true);
 		this.timer.shutdown();
 
 		this.timer = null;

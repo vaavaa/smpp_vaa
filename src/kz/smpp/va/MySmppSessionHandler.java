@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 public class MySmppSessionHandler extends DefaultSmppSessionHandler {
     public static Logger log = LoggerFactory.getLogger(MySmppSessionHandler.class);
     protected Client client;
-    private AllUtils settings = new AllUtils();
     MyDBConnection mDBConnection;
     String text_message="";
 
@@ -66,7 +65,7 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
 //                    else command_respond = 0x555;
                     SmsLine StopSms = new SmsLine();
                     StopSms.setStatus(0);
-                    StopSms.setSms_body(settings.getSettings("message_stop").replace("?",service_to_remove));
+                    StopSms.setSms_body(mDBConnection.getSettings("message_stop").replace("?",service_to_remove));
                     StopSms.setId_client(mDBConnection.getClient(l_addr).getId());
                     StopSms.setTransaction_id(transaction_id);
                     mDBConnection.setSingleSMS(StopSms, textBytes);
@@ -79,11 +78,11 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
                     //Если он на все подписан
                     if (service.equals("all")) {
 //                        command_respond = 0x551;
-                        text_message = settings.getSettings("AllServices_message");
+                        text_message = mDBConnection.getSettings("AllServices_message");
                     }
                     else {
 //                        command_respond = 0x00;
-                        text_message = settings.getSettings("welcome_message_3200");
+                        text_message = mDBConnection.getSettings("welcome_message_3200");
                         text_message = text_message.replace("?",service);
                     }
                     //Запускаем цепочку обработки входящего сообщения и ответа не него в случае если подписаться

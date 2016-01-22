@@ -38,7 +38,6 @@ public class Main {
 	public static org.slf4j.Logger log = LoggerFactory.getLogger(Main.class);
     static Client client;
     static ExecutorService pool;
-    static AllUtils settings = new AllUtils();
     static MyDBConnection mDBConnection = new MyDBConnection();
 
 	private static void log(WindowFuture<Integer, PduRequest, PduResponse> future) {
@@ -74,20 +73,20 @@ public class Main {
                     }
                     break;
                 case "get rate":
-                    rate();
+                    mDBConnection.rate();
                     log.debug("Done. DB is updated with rate");
                     break;
                 case "get metcast":
-                    metcast();
+                    mDBConnection.metcast();
                     log.debug("Done. DB is updated with metcast");
                     break;
                 case "get anecdote":
-                    ParseHtml phtml = new ParseHtml(settings.getSettings("anecdote"));
+                    ParseHtml phtml = new ParseHtml(mDBConnection.getSettings("anecdote"));
                     phtml.close();
                     log.debug("Done. DB is updated with anecdote");
                     break;
                 case "get horoscope":
-                    ascendant();
+                    mDBConnection.ascendant();
                     log.debug("Done. DB is updated with horoscope");
                     break;
                 case "test":
@@ -109,10 +108,10 @@ public class Main {
             SmppSessionConfiguration sessionConfig = new SmppSessionConfiguration();
             sessionConfig.setName("service_3200");
             sessionConfig.setType(SmppBindType.TRANSCEIVER);
-            sessionConfig.setHost(settings.getSettings("ipadress"));
-            sessionConfig.setPort(Integer.parseInt(settings.getSettings("port")));
-            sessionConfig.setSystemId(settings.getSettings("partner_id"));
-            sessionConfig.setPassword(settings.getSettings("partner_pws"));
+            sessionConfig.setHost(mDBConnection.getSettings("ipadress"));
+            sessionConfig.setPort(Integer.parseInt(mDBConnection.getSettings("port")));
+            sessionConfig.setSystemId(mDBConnection.getSettings("partner_id"));
+            sessionConfig.setPassword(mDBConnection.getSettings("partner_pws"));
 
             LoggingOptions loggingOptions = new LoggingOptions();
             sessionConfig.setLoggingOptions(loggingOptions);
@@ -120,7 +119,7 @@ public class Main {
             client = new Client(sessionConfig, mDBConnection);
             client.setElinkPeriod(40);
             client.setSessionHandler(new MySmppSessionHandler(client,mDBConnection));
-            pool = Executors.newFixedThreadPool(4);
+            pool = Executors.newFixedThreadPool(5);
             pool.submit(client);
 
             client.start();
@@ -142,105 +141,6 @@ public class Main {
             }
     }
 
-    public static void metcast(){
-        String StringToClear = settings.getSettings("StringToClear");
-        String BaseURL = settings.getSettings("weather_link");
-        try {
-            String SQL_string = "SELECT city_get_arrg, id_city FROM city_directory";
-            ResultSet rs = mDBConnection.query(SQL_string);
-            while(rs.next()) {
-                String city_get_arrg =  rs.getString("city_get_arrg");
-                int id_city =  rs.getInt("id_city");
-                RSSFeedParser parser = new RSSFeedParser(BaseURL.concat(city_get_arrg));
-                Feed feed = parser.readFeed();
-                for (FeedMessage message : feed.getMessages()) {
-                    String rate_date = parser.Convert_Date(message.getPubDate().substring(0, 16), "EEE, dd MMM YYYY", "");
-
-                    SQL_string ="SELECT * FROM content_metcast WHERE forecast_date = '"+ rate_date
-                            + "' AND id_city = " + id_city;
-                    ResultSet rs_check = mDBConnection.query(SQL_string);
-                    if (rs_check.next()) {
-                        SQL_string = "DELETE FROM content_metcast WHERE forecast_date = '"+ rate_date
-                                + "' AND id_city = " + id_city;
-                        mDBConnection.Update(SQL_string);
-                    }
-                    message.setDescription(message.getDescription().replaceAll("\\<[^>]*>",""));
-                    message.setDescription(message.getDescription().replaceAll(StringToClear,""));
-
-                    SQL_string = "INSERT INTO content_metcast VALUES (NULL, 5, '"+ rate_date +"', "
-                            +id_city+", '"+ message.getDescription()+"')";
-                    mDBConnection.Update(SQL_string);
-
-                }
-
-            }
-            rs.close();
-        }
-        catch (SQLException ex) {
-            ex.printStackTrace();
-        }
-    }
-    public static void rate(){
-        RSSFeedParser parser = new RSSFeedParser(settings.getSettings("rate_link"));
-        Feed feed = parser.readFeed();
-        for (FeedMessage message : feed.getMessages()) {
-            String rate_date =  parser.Convert_Date(message.getPubDate(),"","");
-            try {
-                String SQL_string ="SELECT * FROM content_rate WHERE rate_date = '"+ rate_date
-                        + "' AND currency = '" + message.getTitle()+"'";
-                ResultSet rs = mDBConnection.query(SQL_string);
-                if (rs.next()) {
-                    SQL_string = "DELETE FROM content_rate WHERE rate_date = '"+ rate_date
-                            + "' AND currency = '" + message.getTitle()+"'";
-                    mDBConnection.Update(SQL_string);
-                }
-                SQL_string = "SELECT Rate FROM content_rate WHERE currency = '" + message.getTitle()+"' ORDER BY rate_date DESC LIMIT 1";
-                ResultSet rs_step = mDBConnection.query(SQL_string);
-                if (rs_step.next()) {
-                    float lastStep =  rs_step.getFloat("Rate");
-                    float currentStep = Float.parseFloat(message.getDescription());
-                    float result = currentStep - lastStep;
-                    if (result >= 0) message.setStep("+"+result);
-                    else message.setStep(""+result);
-                }
-                else message.setStep("+0");
-                int limit = message.getStep().length();
-                if (limit>5) limit = 5;
-
-                SQL_string = "INSERT INTO content_rate VALUES (NULL, 3, '"+ rate_date +"', '"
-                        +message.getTitle()+"', "+ message.getDescription()+", '"+message.getStep().substring(0,limit)+"')";
-                mDBConnection.Update(SQL_string);
-
-            }
-            catch (SQLException ex) {
-                ex.printStackTrace();
-            }
-        }
-    }
-    public static void ascendant(){
-        RSSFeedParser parser = new RSSFeedParser(settings.getSettings("ascendent"));
-        Feed feed = parser.readFeed();
-
-        for (FeedMessage message : feed.getMessages()) {
-            String rate_date = message.getPubDate();
-            try {
-                String SQL_string ="SELECT * FROM content_ascendant WHERE created_date = '"+ rate_date + "'";
-                ResultSet rs = mDBConnection.query(SQL_string);
-                if (rs.next()) {
-                    SQL_string = "DELETE FROM content_ascendant WHERE created_date = '"+ rate_date +"'";
-                    mDBConnection.Update(SQL_string);
-                }
-                SQL_string = "INSERT INTO content_ascendant VALUES (NULL, 4, '"+ rate_date +"', '"
-                        + message.getDescription()+"')";
-                mDBConnection.Update(SQL_string);
-
-            }
-            catch (SQLException ex) {
-                ex.printStackTrace();
-
-            }
-        }
-    }
     public static void Test(){
 
     }

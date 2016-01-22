@@ -2,6 +2,9 @@ package kz.smpp.mysql;
 
 
 import com.cloudhopper.smpp.SmppSession;
+import kz.smpp.rome.Feed;
+import kz.smpp.rome.FeedMessage;
+import kz.smpp.rome.RSSFeedParser;
 import kz.smpp.utils.AllUtils;
 
 import java.sql.Statement;
@@ -102,6 +105,24 @@ public class MyDBConnection {
         statement = myConnection.createStatement();
         int result = statement.executeUpdate(insertQuery);
         return result;
+    }
+
+    public String getSettings(String settingsName){
+        String settingsValue=null;
+        MyDBConnection mDBConnection = new MyDBConnection();
+        try {
+            String SQL_string = "SELECT value FROM smpp_settings WHERE name='"+settingsName+"'";
+            ResultSet rs = mDBConnection.query(SQL_string);
+
+            if (rs.next()) {
+                settingsValue = rs.getString("value");
+            }
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+
+        return settingsValue;
     }
 
     public int getLastId() throws SQLException {
@@ -315,7 +336,7 @@ public class MyDBConnection {
         boolean result = false;
         AllUtils settings = new AllUtils();
         String sql_string = "INSERT INTO sms_line(id_client, sms_body, status)"+
-        " SELECT client_session_140.id_client, '"+settings.getSettings("welcome_message_fail_session")+"', '0' FROM client_session_140 " +
+        " SELECT client_session_140.id_client, '"+this.getSettings("welcome_message_fail_session")+"', '0' FROM client_session_140 " +
                 "WHERE now()>  DATE_ADD(client_session_140.time, INTERVAL 120 SECOND)";
         try {
             this.Update(sql_string);
@@ -437,8 +458,8 @@ public class MyDBConnection {
         //Получаем доступные сервисы из настроек
         AllUtils settings = new AllUtils();
         String[] table_names;
-        table_names= new String[Integer.parseInt(settings.getSettings("ServicesCount"))];
-        String services =  settings.getSettings("AvailableServices");
+        table_names= new String[Integer.parseInt(this.getSettings("ServicesCount"))];
+        String services =  this.getSettings("AvailableServices");
         String message_text="";
         String serviceName = "";
         int i = 0;
@@ -471,8 +492,8 @@ public class MyDBConnection {
         //Получаем доступные сервисы из настроек
         AllUtils settings = new AllUtils();
         String[] table_names;
-        table_names= new String[Integer.parseInt(settings.getSettings("ServicesCount"))];
-        String services =  settings.getSettings("AvailableServices");
+        table_names= new String[Integer.parseInt(this.getSettings("ServicesCount"))];
+        String services =  this.getSettings("AvailableServices");
         String message_text="";
         int i = 0;
         while (services.lastIndexOf(";")>=0)
@@ -487,7 +508,7 @@ public class MyDBConnection {
         client clnt = setNewClient(msisdn, sms_text);
         LinkedList<ContentType> llct= getClientsContentTypes(clnt);
         if (llct.size()==0){
-           contentType = getContentType(settings.getSettings("FirstService"));
+           contentType = getContentType(this.getSettings("FirstService"));
            setNewClientsContentTypes(clnt, contentType);
         }
         else {
@@ -510,10 +531,103 @@ public class MyDBConnection {
         }
 
         String serviceName;
-        if (contentType.getName().length()==0) serviceName = settings.getSettings("AllServices");
+        if (contentType.getName().length()==0) serviceName = this.getSettings("AllServices");
         else serviceName = contentType.getName();
 
         return serviceName;
     }
 
+    public void metcast(){
+        AllUtils settings = new AllUtils();
+        String StringToClear = this.getSettings("StringToClear");
+        String BaseURL = this.getSettings("weather_link");
+        try {
+            String SQL_string = "SELECT city_get_arrg, id_city FROM city_directory";
+            ResultSet rs = this.query(SQL_string);
+            while(rs.next()) {
+                String city_get_arrg =  rs.getString("city_get_arrg");
+                int id_city =  rs.getInt("id_city");
+                RSSFeedParser parser = new RSSFeedParser(BaseURL.concat(city_get_arrg));
+                Feed feed = parser.readFeed();
+                for (FeedMessage message : feed.getMessages()) {
+                    String rate_date = parser.Convert_Date(message.getPubDate().substring(0, 16), "EEE, dd MMM YYYY", "");
+
+                    SQL_string ="SELECT * FROM content_metcast WHERE forecast_date = '"+ rate_date
+                            + "' AND id_city = " + id_city;
+                    ResultSet rs_check = this.query(SQL_string);
+                    if (rs_check.next()) {
+                        SQL_string = "DELETE FROM content_metcast WHERE forecast_date = '"+ rate_date
+                                + "' AND id_city = " + id_city;
+                        this.Update(SQL_string);
+                    }
+                    message.setDescription(message.getDescription().replaceAll("\\<[^>]*>",""));
+                    message.setDescription(message.getDescription().replaceAll(StringToClear,""));
+
+                    SQL_string = "INSERT INTO content_metcast VALUES (NULL, 5, '"+ rate_date +"', "
+                            +id_city+", '"+ message.getDescription()+"')";
+                    this.Update(SQL_string);
+
+                }
+
+            }
+            rs.close();
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+    }
+    public void rate(){
+        RSSFeedParser parser = new RSSFeedParser(this.getSettings("rate_link"));
+        Feed feed = parser.readFeed();
+        for (FeedMessage message : feed.getMessages()) {
+            String rate_date =  parser.Convert_Date(message.getPubDate(),"","");
+            try {
+                String SQL_string ="SELECT * FROM content_rate WHERE rate_date = '"+ rate_date
+                        + "' AND currency = '" + message.getTitle()+"'";
+                ResultSet rs = this.query(SQL_string);
+                SQL_string = "SELECT Rate FROM content_rate WHERE currency = '" + message.getTitle()+"' ORDER BY rate_date DESC LIMIT 1";
+                ResultSet rs_step = this.query(SQL_string);
+                if (rs_step.next()) {
+                    float lastStep =  rs_step.getFloat("Rate");
+                    float currentStep = Float.parseFloat(message.getDescription());
+                    float result = currentStep - lastStep;
+                    if (result >= 0) message.setStep("+"+result);
+                    else message.setStep(""+result);
+                }
+                else message.setStep("+0");
+                int limit = message.getStep().length();
+                if (limit>5) limit = 5;
+                if (!rs.next()) {
+                    SQL_string = "INSERT INTO content_rate VALUES (NULL, 3, '"+ rate_date +"', '"
+                            +message.getTitle()+"', "+ message.getDescription()+", '"+message.getStep().substring(0,limit)+"')";
+                    this.Update(SQL_string);
+                }
+
+            }
+            catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+    public void ascendant(){
+        RSSFeedParser parser = new RSSFeedParser(this.getSettings("ascendent"));
+        Feed feed = parser.readFeed();
+
+        for (FeedMessage message : feed.getMessages()) {
+            String rate_date = message.getPubDate();
+            try {
+                String SQL_string ="SELECT * FROM content_ascendant WHERE created_date = '"+ rate_date + "'";
+                ResultSet rs = this.query(SQL_string);
+                if (!rs.next()) {
+                    SQL_string = "INSERT INTO content_ascendant VALUES (NULL, 4, '"+ rate_date +"', '"
+                            + message.getDescription()+"')";
+                    this.Update(SQL_string);
+                }
+            }
+            catch (SQLException ex) {
+                ex.printStackTrace();
+
+            }
+        }
+    }
 }

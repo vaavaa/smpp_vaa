@@ -16,5 +16,6 @@ public class DeadSessionTask implements  Runnable {
 	public void run() {
         mDBConnection.getFollowUpLine();
         mDBConnection.RemoveDeadSessions();
+		log.debug("Session line is cleared");
 	}
 }
