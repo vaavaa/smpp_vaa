@@ -27,8 +27,8 @@ public class FeedContentTask implements  Runnable {
             mDBConnection.ascendant();
             log.debug("Done. DB is updated with ascendant");
 
-            mDBConnection.metcast();
-            log.debug("Done. DB is updated with metcast");
+            if (mDBConnection.metcast()) log.debug("Done. DB is updated with metcast");
+            else log.error("Errors in DB updating process");
 
             ParseHtml phtml = new ParseHtml(mDBConnection.getSettings("anecdote"));
             phtml.close();

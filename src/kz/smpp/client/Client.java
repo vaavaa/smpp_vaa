@@ -33,7 +33,7 @@ public class Client implements Runnable {
     protected ScheduledFuture<?> deadSessionTask;
 	protected ScheduledFuture<?> FContTask;
     protected ScheduledFuture<?> SysTask;
-    protected ScheduledFuture<?> HoroscopeTask;
+    protected ScheduledFuture<?> ServiceTask;
 
 
 	protected long rebindPeriod = 5;
@@ -45,7 +45,7 @@ public class Client implements Runnable {
 	public Client(SmppSessionConfiguration cfg, MyDBConnection mDBCon ) {
 		this.cfg = cfg;
         this.mDBConnection = mDBCon;
-		this.timer = Executors.newScheduledThreadPool(2);
+		this.timer = Executors.newScheduledThreadPool(8);
 	}
 
 	@Override
@@ -93,15 +93,15 @@ public class Client implements Runnable {
     }
     //Устанавливаем переодичное задание на выполнение повисшие сессии переходят в сообщения
     public void runDeadSessionTask(){
-        this.deadSessionTask = this.timer.scheduleAtFixedRate(new DeadSessionTask(mDBConnection),0,120,TimeUnit.SECONDS);
+        this.deadSessionTask = this.timer.scheduleAtFixedRate(new DeadSessionTask(mDBConnection),0,2,TimeUnit.MINUTES);
     }
 	//Устанавливаем переодичное задание на выполнение пополнение контента
 	public void runFeedContentTask(){
 		this.FContTask = this.timer.scheduleAtFixedRate(new FeedContentTask(mDBConnection),0,1,TimeUnit.HOURS);
 	}
 	//Устанавливаем переодичное задание на выполнение посылка гороскопа
-    public void runHoroscopeSendTask(){
-        this.HoroscopeTask = this.timer.scheduleAtFixedRate(new HoroscopeSendTask(this,mDBConnection),0,10,TimeUnit.MINUTES);
+    public void runServiceSendTask(){
+        this.ServiceTask = this.timer.scheduleAtFixedRate(new ServiceSendTask(this,mDBConnection),0,10,TimeUnit.MINUTES);
     }
 
     //Устанавливаем переодичное задание на выполнение бакапирование и заливку на гугл драйв
@@ -149,7 +149,7 @@ public class Client implements Runnable {
             runMessageSendTask();
             runDeadSessionTask();
 			runFeedContentTask();
-            runHoroscopeSendTask();
+			runServiceSendTask();
             runSystemServiceTask();
 		}
 	}
@@ -165,7 +165,7 @@ public class Client implements Runnable {
         deadSessionTask.cancel(true);
 		FContTask.cancel(true);
         SysTask.cancel(true);
-        HoroscopeTask.cancel(true);
+        ServiceTask.cancel(true);
 		this.timer.shutdown();
 
 		this.timer = null;

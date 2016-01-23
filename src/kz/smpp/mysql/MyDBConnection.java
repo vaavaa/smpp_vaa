@@ -545,6 +545,9 @@ public class MyDBConnection {
     }
     public void setHoroscopeLine(Date dte) {
         DateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
+
+
+
     }
 
     public boolean backupData(String dumpExePath, String host, String port, String user, String password, String database, String backupPath) {
@@ -586,7 +589,7 @@ public class MyDBConnection {
 
 
 
-    public void metcast(){
+    public boolean metcast(){
         AllUtils settings = new AllUtils();
         String StringToClear = this.getSettings("StringToClear");
         String BaseURL = this.getSettings("weather_link");
@@ -599,7 +602,7 @@ public class MyDBConnection {
                 RSSFeedParser parser = new RSSFeedParser(BaseURL.concat(city_get_arrg));
                 Feed feed = parser.readFeed();
                 for (FeedMessage message : feed.getMessages()) {
-                    String rate_date = parser.Convert_Date(message.getPubDate().substring(0, 16), "EEE, dd MMM YYYY", "");
+                    String rate_date = parser.Convert_Date(message.getPubDate(), "EEE, dd MMM yyyy HH:mm:ss Z", "");
 
                     SQL_string ="SELECT * FROM content_metcast WHERE forecast_date = '"+ rate_date
                             + "' AND id_city = " + id_city;
@@ -620,9 +623,11 @@ public class MyDBConnection {
 
             }
             rs.close();
+            return true;
         }
         catch (SQLException ex) {
             ex.printStackTrace();
+            return false;
         }
     }
     public void rate(){

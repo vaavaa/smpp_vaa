@@ -38,20 +38,21 @@ public class ParseHtml {
                     .get();
 
             Elements story = doc.select("div.topicbox div.text");
-            int i =1;
+            int i =0;
 
             try {
                 MyDBConnection mdb=new MyDBConnection();
 
-
                 for (Element el:story) {
+                    if (i>5) break;
                     String el_value = Jsoup.parse(el.html()).text();
                     if (el_value.length()<=160){
                        ResultSet rs =  mdb.query("SELECT * FROM content_anecdote WHERE content_type_id=2 and value ='".concat(el_value).concat("'"));
                         if (!rs.next()) {
-                            String insert_str = "INSERT INTO content_anecdote (id, content_type_id, created_date, value) VALUES (NULL, '2', CURRENT_TIMESTAMP, '"+el_value+"');";
-                            int insertR = mdb.Update(insert_str);
-                            }
+                            String insert_str = "INSERT INTO content_anecdote (id, content_type_id, anecdote_date, value) VALUES (NULL, '2', CURDATE(), '"+el_value+"');";
+                            mdb.Update(insert_str);
+                            i++;
+                        }
                     }
                 }
 

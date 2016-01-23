@@ -1,5 +1,7 @@
 package kz.smpp.rome;
 
+import org.joda.time.DateTimeZone;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -139,7 +141,7 @@ public class RSSFeedParser {
         if (NEW_FORMAT.length()==0) NEW_FORMAT= "yyyy-MM-dd";
         String newDateString;
 
-        SimpleDateFormat sdf = new SimpleDateFormat(OLD_FORMAT, Locale.ENGLISH);
+        SimpleDateFormat sdf = new SimpleDateFormat(OLD_FORMAT,Locale.ENGLISH);
         try {
             Date d = sdf.parse(oldDateString);
             sdf.applyPattern(NEW_FORMAT);

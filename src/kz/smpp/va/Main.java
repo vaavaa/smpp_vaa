@@ -48,7 +48,7 @@ public class Main {
 	}
 
 	public static void main(String[] args) throws SmppInvalidArgumentException {
-        //Просто держим приложение до того как его прервут любым словом
+        //Просто держим приложение  в цикле до того как его прервут exit
         Scanner terminalInput = new Scanner(System.in);
         String command ="";
         boolean running = true;
@@ -119,7 +119,7 @@ public class Main {
             client = new Client(sessionConfig, mDBConnection);
             client.setElinkPeriod(40);
             client.setSessionHandler(new MySmppSessionHandler(client,mDBConnection));
-            pool = Executors.newFixedThreadPool(7);
+            pool = Executors.newFixedThreadPool(2);
             pool.submit(client);
 
             client.start();
