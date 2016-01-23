@@ -7,6 +7,24 @@ public class SmsLine {
     private String sms_body;
     private int status;
     private String transaction_id;
+    private String Rate;
+    private String Date;
+
+    public String getDate() {
+        return Date;
+    }
+
+    public void setDate(String date) {
+        Date = date;
+    }
+
+    public String getRate() {
+        return Rate;
+    }
+
+    public void setRate(String rate) {
+        Rate = rate;
+    }
 
     public int getStatus() {
         return status;

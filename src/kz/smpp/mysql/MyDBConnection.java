@@ -2,6 +2,7 @@ package kz.smpp.mysql;
 
 
 import com.cloudhopper.smpp.SmppSession;
+import kz.smpp.client.Client;
 import kz.smpp.rome.Feed;
 import kz.smpp.rome.FeedMessage;
 import kz.smpp.rome.RSSFeedParser;
@@ -17,11 +18,9 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.*;
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.Date;
 
 
@@ -281,10 +280,46 @@ public class MyDBConnection {
         return lct;
     }
 
+    public List<client> getClientsFromContentType(int contentTypeCode, String date) {
+        List<client> lct = new ArrayList<>();
+        String sql_string = "SELECT id_client, msisdn, update_date FROM client_content_type left join clients " +
+                "ON id_client=id WHERE id_content_type ="+contentTypeCode +" AND id_client NOT IN (SELECT id_client FROM sms_line_main WHERE date_send = '"+date+"')";
+        try {
+            ResultSet rs = this.query(sql_string);
+            while (rs.next()) {
+                client cl = new client();
+                cl.setId(rs.getInt("id_client"));
+                cl.setAddrs(rs.getLong("msisdn"));
+                cl.setHelpDate(rs.getDate("update_date"));
+                lct.add(cl);
+            }
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return lct;
+    }
+
+    public boolean setSingleSMS(SmsLine smsLine) {
+
+
+        String sql_string = "INSERT INTO sms_line(id_client, sms_body, status, transaction_id, rate) " +
+                "VALUES ("+smsLine.getId_client()+",'"+smsLine.getSms_body()+"',"+smsLine.getStatus()+",'"+smsLine.getTransaction_id() +"', '"+smsLine.getRate()+"')";
+        String sql_string1 = "INSERT INTO sms_line_main(id_client, id_content_type, date_send, rate) " +
+                "VALUES ("+smsLine.getId_client()+","+smsLine.getStatus()+",'"+smsLine.getDate()+"', "+smsLine.getRate() +")";
+        try {
+            this.Update(sql_string);
+            this.Update(sql_string1);
+            return true;
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
+        }
+    }
     public boolean setSingleSMS(SmsLine smsLine, String sms_text) {
         String sql_string = "INSERT INTO sms_line(id_client, sms_body, status, transaction_id) " +
                 "VALUES ("+smsLine.getId_client()+",'"+smsLine.getSms_body()+"',"+smsLine.getStatus()+",'"+smsLine.getTransaction_id() +"')";
-        SmsLine sm = new SmsLine();
         try {
             this.Update(sql_string);
             sql_string = "INSERT INTO client_activity(id_client, activity_text)" +
@@ -320,7 +355,7 @@ public class MyDBConnection {
     public List<SmsLine> getSMSLine(int line_status) {
         List <SmsLine> smsLines = new ArrayList<>();
         String sql_string = "SELECT id_sms, id_client, sms_body, status, " +
-                "transaction_id FROM sms_line WHERE status="+line_status;
+                "transaction_id, rate FROM sms_line WHERE status="+line_status;
         try {
             ResultSet rs = this.query(sql_string);
             while (rs.next()) {
@@ -330,6 +365,7 @@ public class MyDBConnection {
                 sm.setStatus(rs.getInt("status"));
                 sm.setTransaction_id(rs.getString("transaction_id"));
                 sm.setSms_body(rs.getString("sms_body"));
+                sm.setRate(rs.getString("rate"));
                 smsLines.add(sm);
             }
         }
@@ -446,20 +482,6 @@ public class MyDBConnection {
         return ct;
     }
 
-    public void setOperativeActivity(String id_client, String status, String id_operation){
-        String settingsValue=null;
-        MyDBConnection mDBConnection = new MyDBConnection();
-        try {
-            String SQL_string = "INSERT INTO operative_activity" +
-                    "(id_client, status, id_operation) " +
-                    "VALUES ("+id_client+","+status+","+id_operation+")";
-            mDBConnection.Update(SQL_string);
-
-        }
-        catch (SQLException ex) {
-            ex.printStackTrace();
-        }
-    }
 
     public String RemoveServiceName(Long msisdn){
         //Получаем доступные сервисы из настроек
@@ -543,12 +565,31 @@ public class MyDBConnection {
 
         return serviceName;
     }
+
     public void setHoroscopeLine(Date dte) {
         DateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
-
-
-
     }
+
+    public String getAnecdoteFromDate(String dte) {
+
+        //Выбираем из контент тайпа на эту дату
+        //Вставляем его в исходящие сообщения со статусом 2 - анекдот, по всем клиентам, кто подписался на анекдот
+        //Отправляем. Смотрим когда клиент подписался на сервис, если текущая дата больше чем 3 дня то отправляем за деньги,
+        //если нет, то отправляем пустым.
+        //Результат отправки пишем в исходящие, в двух таблицах
+
+        String sql_string = "SELECT value FROM `content_anecdote` WHERE _date='"+dte+"' LIMIT 1";
+        String vle="";
+        try {
+            ResultSet rs = this.query(sql_string);
+            if (rs.next()) vle = rs.getString("value");
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return vle;
+    }
+
 
     public boolean backupData(String dumpExePath, String host, String port, String user, String password, String database, String backupPath) {
         boolean status = false;
@@ -587,7 +628,23 @@ public class MyDBConnection {
         return status;
     }
 
+    public String Convert_Date(String oldDateString, String OLD_FORMAT, String NEW_FORMAT){
+        if (OLD_FORMAT.length()==0) OLD_FORMAT = "dd.MM.yy";
+        if (NEW_FORMAT.length()==0) NEW_FORMAT= "yyyy-MM-dd";
+        String newDateString;
 
+        SimpleDateFormat sdf = new SimpleDateFormat(OLD_FORMAT, Locale.ENGLISH);
+        try {
+            Date d = sdf.parse(oldDateString);
+            sdf.applyPattern(NEW_FORMAT);
+            newDateString = sdf.format(d);
+            return newDateString;
+        }
+        catch (ParseException ex){
+            return null;
+        }
+
+    }
 
     public boolean metcast(){
         AllUtils settings = new AllUtils();

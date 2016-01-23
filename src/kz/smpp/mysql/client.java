@@ -1,10 +1,21 @@
 package kz.smpp.mysql;
 
+import java.util.Date;
+
 public class client {
 
-    public long addrs;
-    public int status;
-    public int id;
+    private long addrs;
+    private int status;
+    private int id;
+    private Date helpDate;
+
+    public Date getHelpDate() {
+        return helpDate;
+    }
+
+    public void setHelpDate(Date helpDate) {
+        this.helpDate = helpDate;
+    }
 
     public int getId() {
         return id;
