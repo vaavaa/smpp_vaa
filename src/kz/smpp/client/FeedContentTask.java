@@ -21,14 +21,9 @@ public class FeedContentTask implements  Runnable {
         int currentHour = cal.get(Calendar.HOUR_OF_DAY);
         if (currentHour > 22 && currentHour <= 23) {
             //then rock on
-            mDBConnection.rate();
-            log.debug("Done. DB is updated with rate");
-
-            mDBConnection.ascendant();
-            log.debug("Done. DB is updated with ascendant");
-
+            if (mDBConnection.rate()) log.debug("Done. DB is updated with rate");
+            if (mDBConnection.ascendant())log.debug("Done. DB is updated with ascendant");
             if (mDBConnection.metcast()) log.debug("Done. DB is updated with metcast");
-            else log.error("Errors in DB updating process");
 
             ParseHtml phtml = new ParseHtml(mDBConnection.getSettings("anecdote"));
             phtml.close();

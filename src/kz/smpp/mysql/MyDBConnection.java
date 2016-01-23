@@ -630,12 +630,13 @@ public class MyDBConnection {
             return false;
         }
     }
-    public void rate(){
+    public boolean rate(){
         RSSFeedParser parser = new RSSFeedParser(this.getSettings("rate_link"));
         Feed feed = parser.readFeed();
-        for (FeedMessage message : feed.getMessages()) {
-            String rate_date =  parser.Convert_Date(message.getPubDate(),"","");
-            try {
+        try {
+            for (FeedMessage message : feed.getMessages()) {
+                String rate_date =  parser.Convert_Date(message.getPubDate(),"","");
+
                 String SQL_string ="SELECT * FROM content_rate WHERE rate_date = '"+ rate_date
                         + "' AND currency = '" + message.getTitle()+"'";
                 ResultSet rs = this.query(SQL_string);
@@ -656,20 +657,22 @@ public class MyDBConnection {
                             +message.getTitle()+"', "+ message.getDescription()+", '"+message.getStep().substring(0,limit)+"')";
                     this.Update(SQL_string);
                 }
-
             }
-            catch (SQLException ex) {
-                ex.printStackTrace();
-            }
+        return true;
         }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
+        }
+
     }
-    public void ascendant(){
+    public boolean ascendant(){
         RSSFeedParser parser = new RSSFeedParser(this.getSettings("ascendent"));
         Feed feed = parser.readFeed();
+        try {
+            for (FeedMessage message : feed.getMessages()) {
+                String rate_date = message.getPubDate();
 
-        for (FeedMessage message : feed.getMessages()) {
-            String rate_date = message.getPubDate();
-            try {
                 String SQL_string ="SELECT * FROM content_ascendant WHERE created_date = '"+ rate_date + "'";
                 ResultSet rs = this.query(SQL_string);
                 if (!rs.next()) {
@@ -678,10 +681,11 @@ public class MyDBConnection {
                     this.Update(SQL_string);
                 }
             }
-            catch (SQLException ex) {
-                ex.printStackTrace();
-
-            }
+            return true;
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
         }
     }
 }
