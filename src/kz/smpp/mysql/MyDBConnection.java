@@ -283,7 +283,8 @@ public class MyDBConnection {
     public List<client> getClientsFromContentType(int contentTypeCode, String date) {
         List<client> lct = new ArrayList<>();
         String sql_string = "SELECT id_client, msisdn, update_date FROM client_content_type left join clients " +
-                "ON id_client=id WHERE id_content_type ="+contentTypeCode +" AND id_client NOT IN (SELECT id_client FROM sms_line_main WHERE date_send = '"+date+"')";
+                "ON id_client=id WHERE id_content_type ="+contentTypeCode +" AND id_client NOT IN " +
+                "(SELECT id_client FROM sms_line_main WHERE id_content_type = "+contentTypeCode+" AND date_send = '"+date+"')";
         try {
             ResultSet rs = this.query(sql_string);
             while (rs.next()) {
@@ -589,7 +590,25 @@ public class MyDBConnection {
         }
         return vle;
     }
+    public String getHoroscopeFromDate(String dte) {
 
+        //Выбираем из контент тайпа на эту дату
+        //Вставляем его в исходящие сообщения со статусом 2 - анекдот, по всем клиентам, кто подписался на анекдот
+        //Отправляем. Смотрим когда клиент подписался на сервис, если текущая дата больше чем 3 дня то отправляем за деньги,
+        //если нет, то отправляем пустым.
+        //Результат отправки пишем в исходящие, в двух таблицах
+
+        String sql_string = "SELECT value FROM `content_ascendant` WHERE _date='"+dte+"' LIMIT 1";
+        String vle="";
+        try {
+            ResultSet rs = this.query(sql_string);
+            if (rs.next()) vle = rs.getString("value");
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return vle;
+    }
 
     public boolean backupData(String dumpExePath, String host, String port, String user, String password, String database, String backupPath) {
         boolean status = false;
@@ -728,11 +747,12 @@ public class MyDBConnection {
         Feed feed = parser.readFeed();
         try {
             for (FeedMessage message : feed.getMessages()) {
-                String rate_date = message.getPubDate();
+                String rate_date = message.getTitle();
 
-                String SQL_string ="SELECT * FROM content_ascendant WHERE created_date = '"+ rate_date + "'";
+                String SQL_string ="SELECT * FROM content_ascendant WHERE _date = '"+ rate_date + "'";
                 ResultSet rs = this.query(SQL_string);
                 if (!rs.next()) {
+                    if (message.getDescription().length() >255) message.setDescription(message.getDescription().substring(0,255));
                     SQL_string = "INSERT INTO content_ascendant VALUES (NULL, 4, '"+ rate_date +"', '"
                             + message.getDescription()+"')";
                     this.Update(SQL_string);
