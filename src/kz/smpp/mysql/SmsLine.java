@@ -9,6 +9,15 @@ public class SmsLine {
     private String transaction_id;
     private String Rate;
     private String Date;
+    private String err_code="";
+
+    public String getErr_code() {
+        return err_code;
+    }
+
+    public void setErr_code(String err_code) {
+        this.err_code = err_code;
+    }
 
     public String getDate() {
         return Date;

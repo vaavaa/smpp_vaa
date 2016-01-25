@@ -406,7 +406,9 @@ public class MyDBConnection {
                 " SET id_client="+smsLine.getId_client()+","+
                 " sms_body='"+smsLine.getSms_body()+"',"+
                 " status="+smsLine.getStatus()+","+
-                " transaction_id='"+smsLine.getTransaction_id()+"'" +
+                " transaction_id='"+smsLine.getTransaction_id()+"', " +
+                " rate='"+smsLine.getRate()+"', " +
+                " err_code='"+smsLine.getErr_code()+ "'" +
                 " WHERE id_sms="+ smsLine.getId_sms();
         try{
             this.Update(sql_string);

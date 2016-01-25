@@ -104,8 +104,8 @@ public class ServiceSendTask implements Runnable {
                 c.setTime(single_clnt.getHelpDate());
                 c.add(Calendar.DATE, 3);
                 single_clnt.setHelpDate(c.getTime());
-                if (System.currentTimeMillis() < single_clnt.getHelpDate().getTime()) sm.setRate("881010000");
-                else sm.setRate("881010020");
+                if (System.currentTimeMillis() < single_clnt.getHelpDate().getTime()) sm.setRate(mDBConnection.getSettings("tarif_0"));
+                else sm.setRate(mDBConnection.getSettings("tarif_2"));
                 sm.setDate(date);
                 mDBConnection.setSingleSMS(sm);
             }
@@ -130,7 +130,7 @@ public class ServiceSendTask implements Runnable {
                     if (single_sm.getRate().length() > 0)
                         sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, single_sm.getRate().getBytes(), "sourcesub_address"));
                     else
-                        sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, "881010000".getBytes(), "sourcesub_address"));
+                        sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, mDBConnection.getSettings("tarif_0").getBytes(), "sourcesub_address"));
                     sm.setOptionalParameter(new Tlv(SmppConstants.TAG_MESSAGE_PAYLOAD, textBytes, "messagePayload"));
                     sm.calculateAndSetCommandLength();
 
@@ -138,6 +138,9 @@ public class ServiceSendTask implements Runnable {
                     log.debug("SM sent" + sm.toString());
 
                     if (resp.getCommandStatus() != 0) {
+                        single_sm.setErr_code(Integer.toString(resp.getCommandStatus()));
+                        mDBConnection.UpdateSMSLine(single_sm);
+
                         log.debug("Submit issue is released");
                         log.debug("{resp} " + resp.toString());
                         QuerySm querySm = new QuerySm();
