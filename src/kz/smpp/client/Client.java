@@ -83,13 +83,9 @@ public class Client implements Runnable {
 		this.elinkTask = this.timer.scheduleAtFixedRate(new ElinkTask(this), getElinkPeriod(), getElinkPeriod(), TimeUnit.SECONDS);
 	}
 
-	public void runIncomeMessageTask(long msisdn, String textMessage, int transaction_id){
-		this.timer.schedule(new IncomeMessageTask(this,msisdn,textMessage,transaction_id, mDBConnection),0,TimeUnit.SECONDS);
-	}
-
     //Устанавливаем переодичное задание на выполнение
     public void runMessageSendTask(){
-        this.messageTask = this.timer.scheduleAtFixedRate(new MessageSendTask(this, mDBConnection),0,20,TimeUnit.SECONDS);
+        this.messageTask = this.timer.scheduleAtFixedRate(new MessageSendTask(this, mDBConnection),0,10,TimeUnit.SECONDS);
     }
     //Устанавливаем переодичное задание на выполнение повисшие сессии переходят в сообщения
     public void runDeadSessionTask(){
@@ -99,9 +95,9 @@ public class Client implements Runnable {
 	public void runFeedContentTask(){
 		this.FContTask = this.timer.scheduleAtFixedRate(new FeedContentTask(mDBConnection),0,1,TimeUnit.HOURS);
 	}
-	//Устанавливаем переодичное задание на выполнение посылка гороскопа
+	//Устанавливаем переодичное задание на выполнение посылка контента
     public void runServiceSendTask(){
-        this.ServiceTask = this.timer.scheduleAtFixedRate(new ServiceSendTask(this,mDBConnection),0,10,TimeUnit.MINUTES);
+        this.ServiceTask = this.timer.scheduleAtFixedRate(new ServiceSendTask(this,mDBConnection),0,5,TimeUnit.MINUTES);
     }
 
     //Устанавливаем переодичное задание на выполнение бакапирование и заливку на гугл драйв

@@ -176,7 +176,7 @@ public class MyDBConnection {
         return l_client;
     }
 
-    public client setNewClient(long msisdn, String sms_text){
+    public client setNewClient(long msisdn){
         client l_client = new client();
         String sql_string = "SELECT * FROM clients WHERE msisdn= "+msisdn;
         try {
@@ -197,9 +197,6 @@ public class MyDBConnection {
                 l_client.setAddrs(msisdn);
                 l_client.setStatus(0);
             }
-            sql_string = "INSERT INTO client_activity(id_client, activity_text)" +
-                    " VALUES ("+l_client.getId()+",'"+sms_text+"')";
-            this.Update(sql_string);
         }
         catch (SQLException ex) {
             ex.printStackTrace();
@@ -484,37 +481,18 @@ public class MyDBConnection {
     }
 
 
-    public String RemoveServiceName(Long msisdn){
-        //Получаем доступные сервисы из настроек
-        AllUtils settings = new AllUtils();
-        String[] table_names;
-        table_names= new String[Integer.parseInt(this.getSettings("ServicesCount"))];
-        String services =  this.getSettings("AvailableServices");
-        String message_text="";
-        String serviceName = "";
-        int i = 0;
-        while (services.lastIndexOf(";")>=0)
-        {
-            table_names[i]=services.substring(services.lastIndexOf(";")+1,services.length());
-            services = services.substring(0,services.lastIndexOf(";"));
-            i++;
+    public boolean RemoveServiceName(Long msisdn){
+        //Удаляем клиента из рассылки
+        int idClient = getClient(msisdn).getId();
+        String sql_string = "DELETE FROM client_content_type WHERE id_client = "+ idClient;
+        try {
+            this.Update(sql_string);
+            return true;
         }
-        client clnt = getClient(msisdn);
-        LinkedList<ContentType> llct= getClientsContentTypes(clnt);
-        //Ничего нет удалять.
-        if (llct.size()!=0){
-            for (int j = 0; j<=table_names.length-1;j++) {
-                for (ContentType ct : llct) {
-                    if (ct.getTable_name().equals(table_names[j])){
-                        serviceName = ct.getName();
-                        RemoveClientsContentTypes(clnt,ct);
-                        break;
-                    }
-
-                }
-            }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
         }
-        return serviceName;
     }
 
 
@@ -535,7 +513,7 @@ public class MyDBConnection {
 
         ContentType contentType;
         contentType= getContentType("content_anecdot");
-        client clnt = setNewClient(msisdn, sms_text);
+        client clnt = setNewClient(msisdn);
         LinkedList<ContentType> llct= getClientsContentTypes(clnt);
         if (llct.size()==0){
            contentType = getContentType(this.getSettings("FirstService"));
@@ -565,10 +543,6 @@ public class MyDBConnection {
         else serviceName = contentType.getName();
 
         return serviceName;
-    }
-
-    public void setHoroscopeLine(Date dte) {
-        DateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
     }
 
     public String getAnecdoteFromDate(String dte) {
@@ -609,6 +583,37 @@ public class MyDBConnection {
         }
         return vle;
     }
+
+    public String getRateFromDate(String dte) {
+        String sql_string = "SELECT currency FROM content_rate WHERE status = 0 and rate_date='"+dte+"' LIMIT 1";
+        String vle="";
+        try {
+            ResultSet rs = this.query(sql_string);
+            if (rs.next()) vle = rs.getString("currency");
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return vle;
+    }
+    public String getMetcastFromDate(String dte) {
+        String sql_string = "SELECT _text, city_name FROM content_metcast " +
+                    "left join city_directory on content_metcast.id_city = city_directory.id_city " +
+                    "WHERE content_metcast.status =0 AND _date = '"+dte+"'";
+        String vle="";
+        try {
+            ResultSet rs = this.query(sql_string);
+            while (rs.next()) {
+                vle =  vle.concat(rs.getString("city_name")+ " - " +rs.getString("_text")+ "; ");
+            }
+            vle = vle.trim();
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return vle;
+    }
+
 
     public boolean backupData(String dumpExePath, String host, String port, String user, String password, String database, String backupPath) {
         boolean status = false;
@@ -666,12 +671,17 @@ public class MyDBConnection {
     }
 
     public boolean metcast(){
-        AllUtils settings = new AllUtils();
         String StringToClear = this.getSettings("StringToClear");
         String BaseURL = this.getSettings("weather_link");
         try {
-            String SQL_string = "SELECT city_get_arrg, id_city FROM city_directory";
+            String SQL_string = "SELECT city_get_arrg, id_city FROM city_directory WHERE status =0";
             ResultSet rs = this.query(SQL_string);
+            //Держим только на 3 дня прогноз
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTimeInMillis(System.currentTimeMillis());
+            calendar.add(Calendar.DATE, 1);
+            Date dat_plus3 =  calendar.getTime();
+
             while(rs.next()) {
                 String city_get_arrg =  rs.getString("city_get_arrg");
                 int id_city =  rs.getInt("id_city");
@@ -680,23 +690,28 @@ public class MyDBConnection {
                 for (FeedMessage message : feed.getMessages()) {
                     String rate_date = parser.Convert_Date(message.getPubDate(), "EEE, dd MMM yyyy HH:mm:ss Z", "");
 
-                    SQL_string ="SELECT * FROM content_metcast WHERE forecast_date = '"+ rate_date
-                            + "' AND id_city = " + id_city;
-                    ResultSet rs_check = this.query(SQL_string);
-                    if (rs_check.next()) {
-                        SQL_string = "DELETE FROM content_metcast WHERE forecast_date = '"+ rate_date
+                    DateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+                    Date date = format.parse(rate_date);
+
+                    if (dat_plus3.getTime() >= date.getTime()) {
+                        SQL_string ="SELECT * FROM content_metcast WHERE _date = '"+ rate_date
                                 + "' AND id_city = " + id_city;
+                        ResultSet rs_check = this.query(SQL_string);
+                        if (rs_check.next()) {
+                            SQL_string = "DELETE FROM content_metcast WHERE _date = '"+ rate_date
+                                    + "' AND id_city = " + id_city;
+                            this.Update(SQL_string);
+                        }
+                        message.setDescription(message.getDescription().replaceAll("\\<[^>]*>",""));
+                        message.setDescription(message.getDescription().replaceAll(StringToClear,""));
+                        message.setDescription(message.getDescription().replaceAll("\\s+", " ").trim());
+                        message.setDescription(message.getDescription().replace(" .. ", "..").trim());
+
+                        SQL_string = "INSERT INTO content_metcast VALUES (NULL, 5, "+ id_city +", '"+ message.getDescription() +"', "
+                                 + "'" + rate_date +"', 0)";
                         this.Update(SQL_string);
                     }
-                    message.setDescription(message.getDescription().replaceAll("\\<[^>]*>",""));
-                    message.setDescription(message.getDescription().replaceAll(StringToClear,""));
-
-                    SQL_string = "INSERT INTO content_metcast VALUES (NULL, 5, '"+ rate_date +"', "
-                            +id_city+", '"+ message.getDescription()+"')";
-                    this.Update(SQL_string);
-
                 }
-
             }
             rs.close();
             return true;
@@ -705,35 +720,49 @@ public class MyDBConnection {
             ex.printStackTrace();
             return false;
         }
+        catch (ParseException ex) {
+            ex.printStackTrace();
+            return false;
+        }
     }
     public boolean rate(){
         RSSFeedParser parser = new RSSFeedParser(this.getSettings("rate_link"));
         Feed feed = parser.readFeed();
+        String rate_value = "";
+        String rate_date = "";
         try {
             for (FeedMessage message : feed.getMessages()) {
-                String rate_date =  parser.Convert_Date(message.getPubDate(),"","");
+                rate_date =  parser.Convert_Date(message.getPubDate(),"","");
 
                 String SQL_string ="SELECT * FROM content_rate WHERE rate_date = '"+ rate_date
-                        + "' AND currency = '" + message.getTitle()+"'";
+                        + "' AND currency = '" + message.getTitle()+"' AND status = -1";
                 ResultSet rs = this.query(SQL_string);
-                SQL_string = "SELECT Rate FROM content_rate WHERE currency = '" + message.getTitle()+"' ORDER BY rate_date DESC LIMIT 1";
-                ResultSet rs_step = this.query(SQL_string);
-                if (rs_step.next()) {
-                    float lastStep =  rs_step.getFloat("Rate");
-                    float currentStep = Float.parseFloat(message.getDescription());
-                    float result = currentStep - lastStep;
-                    if (result >= 0) message.setStep("+"+result);
-                    else message.setStep(""+result);
-                }
-                else message.setStep("+0");
-                int limit = message.getStep().length();
-                if (limit>5) limit = 5;
                 if (!rs.next()) {
-                    SQL_string = "INSERT INTO content_rate VALUES (NULL, 3, '"+ rate_date +"', '"
-                            +message.getTitle()+"', "+ message.getDescription()+", '"+message.getStep().substring(0,limit)+"')";
-                    this.Update(SQL_string);
+                    SQL_string = "SELECT Rate FROM content_rate WHERE currency = '" + message.getTitle() + "' AND status = -1 ORDER BY rate_date DESC LIMIT 1";
+                    ResultSet rs_step = this.query(SQL_string);
+                    if (rs_step.next()) {
+                        float lastStep = rs_step.getFloat("Rate");
+                        float currentStep = Float.parseFloat(message.getDescription());
+                        float result = currentStep - lastStep;
+                        if (result >= 0) message.setStep("+" + result);
+                        else message.setStep("" + result);
+                    } else message.setStep("+0");
+                    int limit = message.getStep().length();
+                    if (limit > 5) limit = 5;
+                    //Склееиваем в одну строку все курсы
+                    rate_value = rate_value.concat(" :: " + message.getTitle() + " " + message.getDescription() + " " + message.getStep().substring(0, limit));
+                    if (!rs.next()) {
+                        SQL_string = "INSERT INTO content_rate VALUES (NULL, 3, '" + rate_date + "', '"
+                                + message.getTitle() + "', " + message.getDescription() + ", '" + message.getStep().substring(0, limit) + "',-1)";
+                        this.Update(SQL_string);
+                    }
                 }
             }
+            if (rate_value.length()>0) {
+                String SQL_string = "INSERT INTO content_rate VALUES (NULL, 3, '"+ rate_date +"', '"
+                        +rate_value.concat(" ::")+"',0, '0',0)";
+                this.Update(SQL_string);
+                }
         return true;
         }
         catch (SQLException ex) {

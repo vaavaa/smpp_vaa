@@ -18,7 +18,11 @@ public class SystemServiceTask implements  Runnable {
 	public void run() {
         Calendar cal = Calendar.getInstance();
         int currentHour = cal.get(Calendar.HOUR_OF_DAY);
-        if (currentHour > 2 && currentHour <= 3) {
+        if (currentHour > 4 && currentHour <= 5) {
+            mDBConnection.backupData("C:\\xampp\\mysql\\bin\\mysqldump.exe", "localhost", "3306", "root", "", "smpp_clients", "C:\\SMPP\\backups\\backup.sql");
+            log.debug("BackUp should be created...");
+        }
+        if (currentHour >8 && currentHour <= 23) {
             mDBConnection.backupData("C:\\xampp\\mysql\\bin\\mysqldump.exe", "localhost", "3306", "root", "", "smpp_clients", "C:\\SMPP\\backups\\backup.sql");
             log.debug("BackUp should be created...");
         }

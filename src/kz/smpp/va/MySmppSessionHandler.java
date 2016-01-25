@@ -55,21 +55,18 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
             if (dlr.getDataCoding()==0x08) textBytes = CharsetUtil.decode(textMessage, "UCS-2");
             else  textBytes = CharsetUtil.decode(textMessage,"GSM");
 
-
-
             switch (textBytes.toLowerCase()){
                 case "стоп": case "stop":
                     //Запускаем цепочку обработки входящего сообщения в случае если стоп
-                    String service_to_remove =  mDBConnection.RemoveServiceName(l_addr);
-//                    if (service_to_remove.length()>0)command_respond = 0x551;
-//                    else command_respond = 0x555;
-                    SmsLine StopSms = new SmsLine();
-                    StopSms.setStatus(0);
-                    StopSms.setSms_body(mDBConnection.getSettings("message_stop").replace("?",service_to_remove));
-                    StopSms.setId_client(mDBConnection.getClient(l_addr).getId());
-                    StopSms.setTransaction_id(transaction_id);
-                    mDBConnection.setSingleSMS(StopSms, textBytes);
-                    //Далее эту ветку обработает нить которая отправляет СМС
+                    if (mDBConnection.RemoveServiceName(l_addr)) {
+                        SmsLine StopSms = new SmsLine();
+                        StopSms.setStatus(0);
+                        StopSms.setSms_body(mDBConnection.getSettings("message_stop").replace("?", ""));
+                        StopSms.setId_client(mDBConnection.getClient(l_addr).getId());
+                        StopSms.setTransaction_id(transaction_id);
+                        mDBConnection.setSingleSMS(StopSms, textBytes);
+                        //Далее эту ветку обработает нить которая отправляет СМС
+                    }
 
                     break;
                 default:
@@ -77,16 +74,18 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
                     String service = mDBConnection.SignServiceName(l_addr, textBytes);
                     //Если он на все подписан
                     if (service.equals("all")) {
-//                        command_respond = 0x551;
                         text_message = mDBConnection.getSettings("AllServices_message");
                     }
                     else {
-//                        command_respond = 0x00;
                         text_message = mDBConnection.getSettings("welcome_message_3200");
                         text_message = text_message.replace("?",service);
                     }
-                    //Запускаем цепочку обработки входящего сообщения и ответа не него в случае если подписаться
-                    client.runIncomeMessageTask(l_addr,text_message,Integer.parseInt(transaction_id));
+                    SmsLine WelcomeSms = new SmsLine();
+                    WelcomeSms.setStatus(0);
+                    WelcomeSms.setSms_body(text_message);
+                    WelcomeSms.setId_client(mDBConnection.getClient(l_addr).getId());
+                    WelcomeSms.setTransaction_id(transaction_id);
+                    mDBConnection.setSingleSMS(WelcomeSms, textBytes);
                     break;
             }
 

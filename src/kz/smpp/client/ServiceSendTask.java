@@ -38,175 +38,128 @@ public class ServiceSendTask implements Runnable {
         if (currentHour >= 9 && currentHour < 15) {
             Horoscope();
         }
-        if (currentHour >= 10 && currentHour < 14) {
+        if (currentHour >= 9 && currentHour < 15) {
             Rate();
         }
         if (currentHour >= 9 && currentHour < 21) {
             Anecdote();
         }
-        if (currentHour >= 9 && currentHour < 11) {
+        if (currentHour >= 8 && currentHour < 11) {
             metcast();
         }
     }
-    private void metcast() {}
+    private void metcast() {
+        if (client.state == ClientState.BOUND) {
+            String date =  new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+            // Создаем очередь для отправки
+            String an_value = mDBConnection.getMetcastFromDate(date);
+            //У нас 5 контент для погоды
+            RunSMSSend(5,an_value);
+        }
+
+    }
     private void Horoscope() {
         if (client.state == ClientState.BOUND) {
-            SmppSession session = client.getSession();
-
             String date =  new SimpleDateFormat("yyyy-MM-dd").format(new Date());
-
             // Создаем очередь для отправки
             String an_value = mDBConnection.getHoroscopeFromDate(date);
-            if (an_value.length()>0) {
-                List<client> clnts = mDBConnection.getClientsFromContentType(4, date);
-                for (client single_clnt : clnts) {
-                    SmsLine sm =  new SmsLine();
-                    sm.setSms_body(an_value);
-                    sm.setId_client(single_clnt.getId());
-                    sm.setStatus(4);
-                    sm.setTransaction_id("");
-
-                    Calendar c = Calendar.getInstance();
-                    c.setTime(single_clnt.getHelpDate());
-                    c.add(Calendar.DATE, 3);
-                    single_clnt.setHelpDate(c.getTime());
-                    if (System.currentTimeMillis() < single_clnt.getHelpDate().getTime()) sm.setRate("881010000");
-                    else sm.setRate("881010020");
-                    sm.setDate(date);
-                    mDBConnection.setSingleSMS(sm);
-                }
-                //Выбираем все анекдоты
-                List<SmsLine> SMs = mDBConnection.getSMSLine(4);
-                for (SmsLine single_sm : SMs) {
-                    try {
-                        log.debug("Send SM");
-                        int SequenceNumber = 1 + (int) (Math.random() * 32000);
-                        String client_msisdn = Long.toString(mDBConnection.getClient(single_sm.getId_client()).getAddrs());
-
-                        byte[] textBytes = CharsetUtil.encode(single_sm.getSms_body(), "UCS-2");
-
-                        SubmitSm sm = new SubmitSm();
-                        sm.setSourceAddress(new Address((byte) 0x00, (byte) 0x01, mDBConnection.getSettings("my_msisdn")));
-                        sm.setDestAddress(new Address((byte) 0x01, (byte) 0x01, client_msisdn));
-                        sm.setDataCoding((byte) 8);
-                        sm.setEsmClass((byte) 0);
-                        sm.setShortMessage(null);
-                        sm.setSequenceNumber(SequenceNumber);
-                        //Это сообщение по 20 тенге
-                        if (single_sm.getRate().length()>0) sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, single_sm.getRate().getBytes(), "sourcesub_address"));
-                        else sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, "881010000".getBytes(), "sourcesub_address"));
-                        sm.setOptionalParameter(new Tlv(SmppConstants.TAG_MESSAGE_PAYLOAD, textBytes, "messagePayload"));
-                        sm.calculateAndSetCommandLength();
-
-                        SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(60));
-                        log.debug("SM sent" + sm.toString());
-
-                        if (resp.getCommandStatus() != 0) {
-                            log.debug("Submit issue is released");
-                            log.debug("{resp} " + resp.toString());
-                            QuerySm querySm = new QuerySm();
-                            querySm.setMessageId(resp.getMessageId());
-                            querySm.setSourceAddress(new Address((byte) 0x00, (byte) 0x01, mDBConnection.getSettings("my_msisdn")));
-                            querySm.calculateAndSetCommandLength();
-                            WindowFuture<Integer, PduRequest, PduResponse> future1 = session.sendRequestPdu(querySm, 10000, true);
-                            log.debug("Status request is opened");
-                            while (!future1.isDone()) {
-                            }
-                            QuerySmResp queryResp = (QuerySmResp) future1.getResponse();
-                            log.debug("{The answer getMessageState}" + queryResp.toString());
-                            single_sm.setStatus(-1);
-                            mDBConnection.UpdateSMSLine(single_sm);
-                        } else {
-                            single_sm.setStatus(1);
-                            mDBConnection.UpdateSMSLine(single_sm);
-                        }
-                    } catch (SmppTimeoutException | SmppChannelException
-                            | UnrecoverablePduException | InterruptedException | RecoverablePduException ex) {
-                        log.debug("{}", ex);
-                    }
-                }
-            }
+            //У нас 4 контент для гороскопа
+            RunSMSSend(4,an_value);
         }
     }
-    private void Rate(){
 
+    private void Rate(){
+        if (client.state == ClientState.BOUND) {
+            String date =  new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+            // Создаем очередь для отправки
+            String an_value = mDBConnection.getRateFromDate(date);
+            //У нас третий контент для rate
+            RunSMSSend(3,an_value);
+        }
     }
     private void Anecdote(){
         if (client.state == ClientState.BOUND) {
-            SmppSession session = client.getSession();
-
             String date =  new SimpleDateFormat("yyyy-MM-dd").format(new Date());
-
             // Создаем очередь для отправки
             String an_value = mDBConnection.getAnecdoteFromDate(date);
-            if (an_value.length()>0) {
-                List<client> clnts = mDBConnection.getClientsFromContentType(2, date);
-                for (client single_clnt : clnts) {
-                    SmsLine sm =  new SmsLine();
-                    sm.setSms_body(an_value);
-                    sm.setId_client(single_clnt.getId());
-                    sm.setStatus(2);
-                    sm.setTransaction_id("");
+            //У нас второй контент для rate
+            RunSMSSend(2,an_value);
+        }
+    }
 
-                    Calendar c = Calendar.getInstance();
-                    c.setTime(single_clnt.getHelpDate());
-                    c.add(Calendar.DATE, 3);
-                    single_clnt.setHelpDate(c.getTime());
-                    if (System.currentTimeMillis() < single_clnt.getHelpDate().getTime()) sm.setRate("881010000");
-                    else sm.setRate("881010020");
-                    sm.setDate(date);
-                    mDBConnection.setSingleSMS(sm);
-                }
-                //Выбираем все анекдоты
-                List<SmsLine> SMs = mDBConnection.getSMSLine(2);
-                for (SmsLine single_sm : SMs) {
-                        try {
-                            log.debug("Send SM");
-                            int SequenceNumber = 1 + (int) (Math.random() * 32000);
-                            String client_msisdn = Long.toString(mDBConnection.getClient(single_sm.getId_client()).getAddrs());
+    private void RunSMSSend(int conType, String an_value){
+        SmppSession session = client.getSession();
 
-                            byte[] textBytes = CharsetUtil.encode(single_sm.getSms_body(), "UCS-2");
+        String date =  new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+        if (an_value.length()>0) {
+            List<client> clnts = mDBConnection.getClientsFromContentType(conType, date);
+            for (client single_clnt : clnts) {
+                SmsLine sm = new SmsLine();
+                sm.setSms_body(an_value);
+                sm.setId_client(single_clnt.getId());
+                sm.setStatus(conType);
+                sm.setTransaction_id("");
 
-                            SubmitSm sm = new SubmitSm();
-                            sm.setSourceAddress(new Address((byte) 0x00, (byte) 0x01, mDBConnection.getSettings("my_msisdn")));
-                            sm.setDestAddress(new Address((byte) 0x01, (byte) 0x01, client_msisdn));
-                            sm.setDataCoding((byte) 8);
-                            sm.setEsmClass((byte) 0);
-                            sm.setShortMessage(null);
-                            sm.setSequenceNumber(SequenceNumber);
-                            //Это сообщение по 20 тенге
-                            if (single_sm.getRate().length()>0) sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, single_sm.getRate().getBytes(), "sourcesub_address"));
-                            else sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, "881010000".getBytes(), "sourcesub_address"));
-                            sm.setOptionalParameter(new Tlv(SmppConstants.TAG_MESSAGE_PAYLOAD, textBytes, "messagePayload"));
-                            sm.calculateAndSetCommandLength();
+                Calendar c = Calendar.getInstance();
+                c.setTime(single_clnt.getHelpDate());
+                c.add(Calendar.DATE, 3);
+                single_clnt.setHelpDate(c.getTime());
+                if (System.currentTimeMillis() < single_clnt.getHelpDate().getTime()) sm.setRate("881010000");
+                else sm.setRate("881010020");
+                sm.setDate(date);
+                mDBConnection.setSingleSMS(sm);
+            }
+            //Выбираем все анекдоты
+            List<SmsLine> SMs = mDBConnection.getSMSLine(conType);
+            for (SmsLine single_sm : SMs) {
+                try {
+                    log.debug("Send SM");
+                    int SequenceNumber = 1 + (int) (Math.random() * 32000);
+                    String client_msisdn = Long.toString(mDBConnection.getClient(single_sm.getId_client()).getAddrs());
 
-                            SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(60));
-                            log.debug("SM sent" + sm.toString());
+                    byte[] textBytes = CharsetUtil.encode(single_sm.getSms_body(), "UCS-2");
 
-                            if (resp.getCommandStatus() != 0) {
-                                log.debug("Submit issue is released");
-                                log.debug("{resp} " + resp.toString());
-                                QuerySm querySm = new QuerySm();
-                                querySm.setMessageId(resp.getMessageId());
-                                querySm.setSourceAddress(new Address((byte) 0x00, (byte) 0x01, mDBConnection.getSettings("my_msisdn")));
-                                querySm.calculateAndSetCommandLength();
-                                WindowFuture<Integer, PduRequest, PduResponse> future1 = session.sendRequestPdu(querySm, 10000, true);
-                                log.debug("Status request is opened");
-                                while (!future1.isDone()) {
-                                }
-                                QuerySmResp queryResp = (QuerySmResp) future1.getResponse();
-                                log.debug("{The answer getMessageState}" + queryResp.toString());
-                                single_sm.setStatus(-1);
-                                mDBConnection.UpdateSMSLine(single_sm);
-                            } else {
-                                single_sm.setStatus(1);
-                                mDBConnection.UpdateSMSLine(single_sm);
-                            }
-                        } catch (SmppTimeoutException | SmppChannelException
-                                | UnrecoverablePduException | InterruptedException | RecoverablePduException ex) {
-                            log.debug("{}", ex);
+                    SubmitSm sm = new SubmitSm();
+                    sm.setSourceAddress(new Address((byte) 0x00, (byte) 0x01, mDBConnection.getSettings("my_msisdn")));
+                    sm.setDestAddress(new Address((byte) 0x01, (byte) 0x01, client_msisdn));
+                    sm.setDataCoding((byte) 8);
+                    sm.setEsmClass((byte) 0);
+                    sm.setShortMessage(null);
+                    sm.setSequenceNumber(SequenceNumber);
+                    //Это сообщение по 20 тенге
+                    if (single_sm.getRate().length() > 0)
+                        sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, single_sm.getRate().getBytes(), "sourcesub_address"));
+                    else
+                        sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, "881010000".getBytes(), "sourcesub_address"));
+                    sm.setOptionalParameter(new Tlv(SmppConstants.TAG_MESSAGE_PAYLOAD, textBytes, "messagePayload"));
+                    sm.calculateAndSetCommandLength();
+
+                    SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(60));
+                    log.debug("SM sent" + sm.toString());
+
+                    if (resp.getCommandStatus() != 0) {
+                        log.debug("Submit issue is released");
+                        log.debug("{resp} " + resp.toString());
+                        QuerySm querySm = new QuerySm();
+                        querySm.setMessageId(resp.getMessageId());
+                        querySm.setSourceAddress(new Address((byte) 0x00, (byte) 0x01, mDBConnection.getSettings("my_msisdn")));
+                        querySm.calculateAndSetCommandLength();
+                        WindowFuture<Integer, PduRequest, PduResponse> future1 = session.sendRequestPdu(querySm, 10000, true);
+                        log.debug("Status request is opened");
+                        while (!future1.isDone()) {
                         }
+                        QuerySmResp queryResp = (QuerySmResp) future1.getResponse();
+                        log.debug("{The answer getMessageState}" + queryResp.toString());
+                        single_sm.setStatus(-1);
+                        mDBConnection.UpdateSMSLine(single_sm);
+                    } else {
+                        single_sm.setStatus(1);
+                        mDBConnection.UpdateSMSLine(single_sm);
                     }
+                } catch (SmppTimeoutException | SmppChannelException
+                        | UnrecoverablePduException | InterruptedException | RecoverablePduException ex) {
+                    log.debug("{}", ex);
+                }
             }
         }
     }
