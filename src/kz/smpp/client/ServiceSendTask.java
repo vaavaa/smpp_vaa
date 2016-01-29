@@ -35,16 +35,18 @@ public class ServiceSendTask implements Runnable {
         //Задаем временые промежутки когда будет запущена рассылка
         Calendar cal = Calendar.getInstance();
         int currentHour = cal.get(Calendar.HOUR_OF_DAY);
+        int currentMinutes = cal.get(Calendar.MINUTE);
+
         if (currentHour >= 9 && currentHour < 15) {
             Horoscope();
         }
         if (currentHour >= 9 && currentHour < 15) {
             Rate();
         }
-        if (currentHour >= 9 && currentHour < 21) {
+        if (currentHour >= 13 && currentHour < 21) {
             Anecdote();
         }
-        if (currentHour >= 8 && currentHour < 11) {
+        if ((currentHour >= 8 && currentMinutes >30) && currentHour < 17) {
             metcast();
         }
     }
@@ -105,7 +107,7 @@ public class ServiceSendTask implements Runnable {
                 c.add(Calendar.DATE, 3);
                 single_clnt.setHelpDate(c.getTime());
                 if (System.currentTimeMillis() < single_clnt.getHelpDate().getTime()) sm.setRate(mDBConnection.getSettings("tarif_0"));
-                else sm.setRate(mDBConnection.getSettings("tarif_2"));
+                else sm.setRate(mDBConnection.getSettings("tarif_1"));
                 sm.setDate(date);
                 mDBConnection.setSingleSMS(sm);
             }

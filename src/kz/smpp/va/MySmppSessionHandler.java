@@ -29,6 +29,8 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
         if (pduRequest.isRequest() && pduRequest.getClass() == DeliverSm.class) {
             log.debug("Got DELIVER_SM");
 
+            //кодовое слово о выводе информации о сервисе
+            String service_info_word = mDBConnection.getSettings("service_info_word");
             DeliverSm dlr = (DeliverSm)pduRequest;
 
  //           Integer command_respond = 0x600; //по умолчанию ошибка на нашей стороне
@@ -55,8 +57,9 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
             if (dlr.getDataCoding()==0x08) textBytes = CharsetUtil.decode(textMessage, "UCS-2");
             else  textBytes = CharsetUtil.decode(textMessage,"GSM");
 
-            switch (textBytes.toLowerCase()){
-                case "стоп": case "stop":
+            switch (textBytes.toLowerCase()) {
+                case "стоп":
+                case "stop":
                     //Запускаем цепочку обработки входящего сообщения в случае если стоп
                     if (mDBConnection.RemoveServiceName(l_addr)) {
                         SmsLine StopSms = new SmsLine();
@@ -65,27 +68,40 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
                         StopSms.setId_client(mDBConnection.getClient(l_addr).getId());
                         StopSms.setTransaction_id(transaction_id);
                         mDBConnection.setSingleSMS(StopSms, textBytes);
-                        //Далее эту ветку обработает нить которая отправляет СМС
+                        //Далее эту ветку обработает нить которая отправляет СМC которая берет из базы
                     }
-
                     break;
                 default:
-                    //Получаем на что абонент подписался
-                    String service = mDBConnection.SignServiceName(l_addr, textBytes);
-                    //Если он на все подписан
-                    if (service.equals("all")) {
-                        text_message = mDBConnection.getSettings("AllServices_message");
+                    if (textBytes.toLowerCase().equalsIgnoreCase(service_info_word)) {
+                        //Запускаем цепочку обработки входящего сообщения запроса о статусе
+                        SmsLine StopSms = new SmsLine();
+                        StopSms.setStatus(0);
+                        StopSms.setSms_body(mDBConnection.BCR());
+                        StopSms.setId_client(mDBConnection.getClient(l_addr).getId());
+                        StopSms.setTransaction_id(transaction_id);
+                        mDBConnection.setSingleSMS(StopSms, textBytes);
+                        //Далее эту ветку обработает нить которая отправляет СМC которая берет из базы
                     }
                     else {
-                        text_message = mDBConnection.getSettings("welcome_message_3200");
-                        text_message = text_message.replace("?",service);
+                        if (textBytes.lastIndexOf("dlvrd:") > 0) {} //Если пришел ответ от quiet смс, тогда ни чего не делаем
+                        else {
+                            //Получаем на что абонент подписался
+                            String service = mDBConnection.SignServiceName(l_addr, textBytes);
+                            //Если он на все подписан
+                            if (service.equals("all")) {
+                                text_message = mDBConnection.getSettings("AllServices_message");
+                            } else {
+                                text_message = mDBConnection.getSettings("welcome_message_3200");
+                                text_message = text_message.replace("?", service);
+                            }
+                            SmsLine WelcomeSms = new SmsLine();
+                            WelcomeSms.setStatus(0);
+                            WelcomeSms.setSms_body(text_message);
+                            WelcomeSms.setId_client(mDBConnection.getClient(l_addr).getId());
+                            WelcomeSms.setTransaction_id(transaction_id);
+                            mDBConnection.setSingleSMS(WelcomeSms, textBytes);
+                        }
                     }
-                    SmsLine WelcomeSms = new SmsLine();
-                    WelcomeSms.setStatus(0);
-                    WelcomeSms.setSms_body(text_message);
-                    WelcomeSms.setId_client(mDBConnection.getClient(l_addr).getId());
-                    WelcomeSms.setTransaction_id(transaction_id);
-                    mDBConnection.setSingleSMS(WelcomeSms, textBytes);
                     break;
             }
 

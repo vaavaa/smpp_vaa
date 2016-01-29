@@ -1,8 +1,5 @@
 package kz.smpp.mysql;
 
-
-import com.cloudhopper.smpp.SmppSession;
-import kz.smpp.client.Client;
 import kz.smpp.rome.Feed;
 import kz.smpp.rome.FeedMessage;
 import kz.smpp.rome.RSSFeedParser;
@@ -119,10 +116,10 @@ public class MyDBConnection {
         try {
             String SQL_string = "SELECT value FROM smpp_settings WHERE name='"+settingsName+"'";
             ResultSet rs = mDBConnection.query(SQL_string);
-
             if (rs.next()) {
                 settingsValue = rs.getString("value");
             }
+            rs.close();
         }
         catch (SQLException ex) {
             ex.printStackTrace();
@@ -152,6 +149,7 @@ public class MyDBConnection {
                 l_client.setAddrs(rs.getLong("msisdn"));
                 l_client.setStatus(rs.getInt("status"));
             }
+            rs.close();
         }
         catch (SQLException ex) {
             ex.printStackTrace();
@@ -169,6 +167,7 @@ public class MyDBConnection {
                 l_client.setAddrs(rs.getLong("msisdn"));
                 l_client.setStatus(rs.getInt("status"));
             }
+            rs.close();
         }
         catch (SQLException ex) {
             ex.printStackTrace();
@@ -197,6 +196,7 @@ public class MyDBConnection {
                 l_client.setAddrs(msisdn);
                 l_client.setStatus(0);
             }
+            rs.close();
         }
         catch (SQLException ex) {
             ex.printStackTrace();
@@ -218,6 +218,7 @@ public class MyDBConnection {
                 ct.setTable_name(rs.getString("table_name"));
                 lct.add(ct);
             }
+            rs.close();
         }
         catch (SQLException ex) {
             ex.printStackTrace();
@@ -248,6 +249,7 @@ public class MyDBConnection {
                 l_client.setAddrs(msisdn);
                 l_client.setStatus(-1);
             }
+            rs.close();
         }
         catch (SQLException ex) {
             ex.printStackTrace();
@@ -270,6 +272,7 @@ public class MyDBConnection {
                 ct.setTable_name(rs.getString("table_name"));
                 lct.add(ct);
             }
+            rs.close();
         }
         catch (SQLException ex) {
             ex.printStackTrace();
@@ -291,11 +294,33 @@ public class MyDBConnection {
                 cl.setHelpDate(rs.getDate("update_date"));
                 lct.add(cl);
             }
+            rs.close();
         }
         catch (SQLException ex) {
             ex.printStackTrace();
         }
         return lct;
+    }
+
+   public List<ContentType> getAllContents() {
+        List <ContentType> contentTypes = new ArrayList<>();
+        String sql_string = "SELECT  `id`, `name`, `table_name`, `name_eng` from content_type";
+        try {
+            ResultSet rs = this.query(sql_string);
+            while (rs.next()) {
+                ContentType ct = new ContentType();
+                ct.setId(rs.getInt("id"));
+                ct.setName(rs.getString("name"));
+                ct.setTable_name(rs.getString("table_name"));
+                ct.setName_eng(rs.getString("name_eng"));
+                contentTypes.add(ct);
+            }
+            rs.close();
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return contentTypes;
     }
 
     public boolean setSingleSMS(SmsLine smsLine) {
@@ -343,6 +368,7 @@ public class MyDBConnection {
                 sm.setStatus(rs.getInt("status"));
                 sm.setTransaction_id(rs.getString("transaction_id"));
                 sm.setSms_body(rs.getString("sms_body"));
+                rs.close();
             }
         }
         catch (SQLException ex) {
@@ -366,6 +392,7 @@ public class MyDBConnection {
                 sm.setRate(rs.getString("rate"));
                 smsLines.add(sm);
             }
+            rs.close();
         }
         catch (SQLException ex) {
             ex.printStackTrace();
@@ -457,7 +484,9 @@ public class MyDBConnection {
                 ct.setName(rs.getString("name"));
                 ct.setName_eng(rs.getString("name_eng"));
                 ct.setTable_name(rs.getString("table_name"));
+
             }
+            rs.close();
         }
         catch (SQLException ex) {
             ex.printStackTrace();
@@ -475,6 +504,7 @@ public class MyDBConnection {
                 ct.setName_eng(rs.getString("name_eng"));
                 ct.setTable_name(rs.getString("table_name"));
             }
+            rs.close();
         }
         catch (SQLException ex) {
             ex.printStackTrace();
@@ -560,6 +590,7 @@ public class MyDBConnection {
         try {
             ResultSet rs = this.query(sql_string);
             if (rs.next()) vle = rs.getString("value");
+            rs.close();
         }
         catch (SQLException ex) {
             ex.printStackTrace();
@@ -579,6 +610,7 @@ public class MyDBConnection {
         try {
             ResultSet rs = this.query(sql_string);
             if (rs.next()) vle = rs.getString("value");
+            rs.close();
         }
         catch (SQLException ex) {
             ex.printStackTrace();
@@ -592,6 +624,7 @@ public class MyDBConnection {
         try {
             ResultSet rs = this.query(sql_string);
             if (rs.next()) vle = rs.getString("currency");
+            rs.close();
         }
         catch (SQLException ex) {
             ex.printStackTrace();
@@ -609,6 +642,7 @@ public class MyDBConnection {
                 vle =  vle.concat(rs.getString("city_name")+ " - " +rs.getString("_text")+ "; ");
             }
             vle = vle.trim();
+            rs.close();
         }
         catch (SQLException ex) {
             ex.printStackTrace();
@@ -704,6 +738,7 @@ public class MyDBConnection {
                                     + "' AND id_city = " + id_city;
                             this.Update(SQL_string);
                         }
+                        rs_check.close();
                         message.setDescription(message.getDescription().replaceAll("\\<[^>]*>",""));
                         message.setDescription(message.getDescription().replaceAll(StringToClear,""));
                         message.setDescription(message.getDescription().replaceAll("\\s+", " ").trim());
@@ -758,11 +793,13 @@ public class MyDBConnection {
                                 + message.getTitle() + "', " + message.getDescription() + ", '" + message.getStep().substring(0, limit) + "',-1)";
                         this.Update(SQL_string);
                     }
+                    rs_step.close();
                 }
+                rs.close();
             }
             if (rate_value.length()>0) {
                 String SQL_string = "INSERT INTO content_rate VALUES (NULL, 3, '"+ rate_date +"', '"
-                        +rate_value.concat(" ::")+"',0, '0',0)";
+                        +rate_value.concat(" ::").trim() +"',0, '0',0)";
                 this.Update(SQL_string);
                 }
         return true;
@@ -788,6 +825,7 @@ public class MyDBConnection {
                             + message.getDescription()+"')";
                     this.Update(SQL_string);
                 }
+                rs.close();
             }
             return true;
         }
@@ -795,5 +833,36 @@ public class MyDBConnection {
             ex.printStackTrace();
             return false;
         }
+    }
+
+    //KPIs sector
+    public String BCR(){
+        String sql_return = "";
+        String SQL_string = "SELECT count(*) as succeed FROM `sms_line` WHERE (status = 1 and " +
+                "(rate = '"+getSettings("tarif_1")+"' " +
+                "or rate = '"+getSettings("tarif_2")+"' " +
+                "or rate = '"+getSettings("tarif_3")+"' " +
+                "or rate = '"+getSettings("tarif_4")+"'))";
+        String SQL_string1 = "SELECT count(*) as all_recd FROM `sms_line` WHERE " +
+                "(rate = '"+getSettings("tarif_1")+"' " +
+                "or rate = '"+getSettings("tarif_2")+"' " +
+                "or rate = '"+getSettings("tarif_3")+"' " +
+                "or rate = '"+getSettings("tarif_4")+"')";
+        int BCR = 0;
+        try {
+            ResultSet rs = this.query(SQL_string);
+            ResultSet rs1 = this.query(SQL_string1);
+            if (rs.next() && rs1.next()) {
+                if (rs1.getInt("all_recd") > 0) {
+                    BCR = (int)((rs.getFloat("succeed")/rs1.getFloat("all_recd"))*100);
+                }
+            }
+            rs.close();
+            rs1.close();
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return "BCR: "+BCR;
     }
 }

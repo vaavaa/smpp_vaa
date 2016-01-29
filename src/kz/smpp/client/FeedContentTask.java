@@ -19,12 +19,12 @@ public class FeedContentTask implements  Runnable {
 	public void run() {
         Calendar cal = Calendar.getInstance();
         int currentHour = cal.get(Calendar.HOUR_OF_DAY);
-        if (currentHour > 11 && currentHour <= 12) if (mDBConnection.rate()) log.debug("Done. DB is updated with rate");
+        if (currentHour >= 11 && currentHour <= 12) if (mDBConnection.rate()) log.debug("Done. DB is updated with rate");
 
-        if (currentHour > 8 && currentHour <= 9) {
+        if (currentHour >= 7 && currentHour <= 9) {
             if (mDBConnection.rate()) log.debug("Done. DB is updated with rate");
         }
-        if (currentHour > 7 && currentHour <= 8) {
+        if (currentHour >= 7 && currentHour <= 9) {
             if (mDBConnection.metcast()) log.debug("Done. DB is updated with metcast");
         }
         if (currentHour > 2 && currentHour <= 3)

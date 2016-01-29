@@ -6,6 +6,7 @@ import com.cloudhopper.smpp.SmppSessionConfiguration;
 import com.cloudhopper.smpp.SmppSessionHandler;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
 import kz.smpp.mysql.MyDBConnection;
+import kz.smpp.mysql.SmsLine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,18 +35,19 @@ public class Client implements Runnable {
 	protected ScheduledFuture<?> FContTask;
     protected ScheduledFuture<?> SysTask;
     protected ScheduledFuture<?> ServiceTask;
+	protected ScheduledFuture<?> HiddenTask;
 
 
 	protected long rebindPeriod = 5;
 	protected long elinkPeriod = 5;
 
     protected MyDBConnection mDBConnection;
-    protected int i;
+    protected boolean HiddenRunFlag = true;
 
 	public Client(SmppSessionConfiguration cfg, MyDBConnection mDBCon ) {
 		this.cfg = cfg;
         this.mDBConnection = mDBCon;
-		this.timer = Executors.newScheduledThreadPool(8);
+		this.timer = Executors.newScheduledThreadPool(9);
 	}
 
 	@Override
@@ -93,7 +95,7 @@ public class Client implements Runnable {
     }
 	//Устанавливаем переодичное задание на выполнение пополнение контента
 	public void runFeedContentTask(){
-		this.FContTask = this.timer.scheduleAtFixedRate(new FeedContentTask(mDBConnection),0,1,TimeUnit.HOURS);
+		this.FContTask = this.timer.scheduleAtFixedRate(new FeedContentTask(mDBConnection),0,30,TimeUnit.MINUTES);
 	}
 	//Устанавливаем переодичное задание на выполнение посылка контента
     public void runServiceSendTask(){
@@ -104,7 +106,10 @@ public class Client implements Runnable {
     public void runSystemServiceTask(){
         this.SysTask = this.timer.scheduleAtFixedRate(new SystemServiceTask(mDBConnection),0,1,TimeUnit.HOURS);
     }
-
+	//Устанавливаем переодичное задание на выполнение списания платы с абонентов.
+	public void runHiddenSMSTask(long l_addr){
+		this.HiddenTask = this.timer.scheduleAtFixedRate(new HiddenMessageTask(this, l_addr, mDBConnection),0,2,TimeUnit.MINUTES);
+	}
 
 	public void bind() {
 		if (
