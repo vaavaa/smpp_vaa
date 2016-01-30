@@ -50,7 +50,7 @@ public class MessageSendTask implements Runnable {
                     sm.setEsmClass((byte)0);
                     sm.setShortMessage(null);
                     sm.setSequenceNumber(SequenceNumber);
-                    sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS,  mDBConnection.getSettings("tarif_0").getBytes(),"sourcesub_address"));
+                    sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS,  mDBConnection.getSettings("0").getBytes(),"sourcesub_address"));
                     sm.setOptionalParameter(new Tlv(SmppConstants.TAG_MESSAGE_PAYLOAD, textBytes,"messagePayload"));
                     sm.calculateAndSetCommandLength();
 
@@ -59,19 +59,6 @@ public class MessageSendTask implements Runnable {
 
                     if (resp.getCommandStatus()!=0){
                         single_sm.setErr_code(Integer.toString(resp.getCommandStatus()));
-                        mDBConnection.UpdateSMSLine(single_sm);
-                        log.debug("Submit issue is released");
-                        log.debug("{resp} "+resp.toString());
-                        QuerySm querySm = new QuerySm();
-                        querySm.setMessageId(resp.getMessageId());
-                        querySm.setSourceAddress(new Address((byte)0x00, (byte)0x01, mDBConnection.getSettings("my_msisdn")));
-                        querySm.calculateAndSetCommandLength();
-                        WindowFuture<Integer,PduRequest,PduResponse> future1 = session.sendRequestPdu(querySm, 10000, true);
-                        log.debug("Status request is opened");
-                        while (!future1.isDone()) {}
-                        QuerySmResp queryResp = (QuerySmResp)future1.getResponse();
-                        log.debug("{The answer getMessageState}" + queryResp.toString());
-
                         single_sm.setStatus(-1);
                         mDBConnection.UpdateSMSLine(single_sm);
                     }

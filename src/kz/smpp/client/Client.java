@@ -107,8 +107,8 @@ public class Client implements Runnable {
         this.SysTask = this.timer.scheduleAtFixedRate(new SystemServiceTask(mDBConnection),0,1,TimeUnit.HOURS);
     }
 	//Устанавливаем переодичное задание на выполнение списания платы с абонентов.
-	public void runHiddenSMSTask(long l_addr){
-		this.HiddenTask = this.timer.scheduleAtFixedRate(new HiddenMessageTask(this, l_addr, mDBConnection),0,2,TimeUnit.MINUTES);
+	public void runHiddenSMSTask(){
+		this.HiddenTask = this.timer.scheduleAtFixedRate(new HiddenMessageTask(this, mDBConnection),0,3,TimeUnit.MINUTES);
 	}
 
 	public void bind() {
@@ -152,6 +152,7 @@ public class Client implements Runnable {
 			runFeedContentTask();
 			runServiceSendTask();
             runSystemServiceTask();
+			runHiddenSMSTask();
 		}
 	}
 
@@ -167,6 +168,7 @@ public class Client implements Runnable {
 		FContTask.cancel(true);
         SysTask.cancel(true);
         ServiceTask.cancel(true);
+        HiddenTask.cancel(true);
 		this.timer.shutdown();
 
 		this.timer = null;

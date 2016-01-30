@@ -22,16 +22,12 @@ import java.util.concurrent.TimeUnit;
 public class HiddenMessageTask implements Runnable {
     public static final org.slf4j.Logger log = LoggerFactory.getLogger(HiddenMessageTask.class);
     protected Client client;
-    private long msisdn = -1;
-    private String message_text;
     private MyDBConnection mDBConnection;
-    private int transaction_id;
 
 
-    public HiddenMessageTask(Client client, Long smclient, MyDBConnection mDBConn) {
+    public HiddenMessageTask(Client client, MyDBConnection mDBConn) {
         this.client = client;
         this.mDBConnection = mDBConn;
-        msisdn = smclient;
 
     }
 
@@ -42,10 +38,7 @@ public class HiddenMessageTask implements Runnable {
         int currentHour = cal.get(Calendar.HOUR_OF_DAY);
         int currentMinutes = cal.get(Calendar.MINUTE);
 
-        if (currentHour == 0 && currentMinutes >= 14 && client.HiddenRunFlag) {
-            CreatePaidClients ();
-            QuietSMSRun();
-        }
+        if (currentHour == 0 && currentMinutes >= 14 && client.HiddenRunFlag) {QuietSMSRun();}
         if (currentHour == 0 && currentMinutes >= 50 ) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
 
         if (currentHour == 9 && currentMinutes >= 14 && client.HiddenRunFlag) QuietSMSRun();
@@ -75,71 +68,100 @@ public class HiddenMessageTask implements Runnable {
         c.add(Calendar.DATE, -3);
         String past_3days_date =  new SimpleDateFormat("yyyy-MM-dd").format(c.getTime());
 
-
+        //получили все типы контента
         List<ContentType> contentTypes = mDBConnection.getAllContents();
+        //Перебираем каждый тип контента
         for (ContentType ct: contentTypes) {
-            List<kz.smpp.mysql.client> clnts = mDBConnection.getClientsFromContentType(ct.getId(), past_3days_date);
+            //Все клиенты подписавшиеся на сервис и тех которых нет еще в таблице лога за эту дату и дата сервиса уже проходит по оплате
+            List<kz.smpp.mysql.client> clnts = mDBConnection.getClientsFromContentTypeHidden(ct.getId(), currdate);
             for (client single_clnt : clnts) {
-                SmsLine sm = new SmsLine();
-                sm.setId_client(single_clnt.getId());
-                sm.setStatus(0);
-                sm.setTransaction_id("");
-
-                if (System.currentTimeMillis() < single_clnt.getHelpDate().getTime()) sm.setRate(mDBConnection.getSettings("tarif_0"));
-                else sm.setRate(mDBConnection.getSettings("tarif_1"));
-                sm.setDate(date);
-                mDBConnection.setSingleSMS(sm);
+                SmsLine smLn = new SmsLine();
+                smLn.setId_client(single_clnt.getId());
+                //Статус ожидает обработки, 1 - обработка закончена
+                smLn.setStatus(0);
+                //Тип понтента
+                smLn.setRate(""+ct.getId());
+                //Сумма которую снимаем с клиента
+                smLn.setTransaction_id(mDBConnection.getSettings("service_sum"));
+                //Текущая дата
+                smLn.setDate(currdate);
+                mDBConnection.setSingleSMSHidden(smLn);
             }
         }
     }
+
     public void  QuietSMSRun(){
+        CreatePaidClients ();
+        String currdate =  new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+        List<SmsLine> lineList =  mDBConnection.getAllSingleHiddenSMS(currdate);
+        for (SmsLine sml: lineList) {
+            int sum_start = Integer.parseInt(sml.getTransaction_id());
+            if (send_core(sml,sml.getTransaction_id())){
+                int sum_got = Integer.parseInt(sml.getTransaction_id());
+                int value = sum_start-sum_got;
+                if (value==0) sml.setStatus(1);
+                sml.setTransaction_id(""+value);
+                mDBConnection.UpdateHiddenSMSLine(sml);
+            };
+        }
+        client.HiddenRunFlag = false;
+    }
+
+    //рекурсивная функция прохода по всем тарифам
+    public boolean send_core(SmsLine sml, String tarif) {
+        if (tarif.length()==0) return false;
         if (client.state == ClientState.BOUND) {
-
-
-
-
-
-
-
-           SmppSession session = client.getSession();
-
+            SmppSession session = client.getSession();
+            Long msisdn = mDBConnection.getClient(sml.getId_client()).getAddrs();
             try {
                 log.debug("Send SM");
-                int SequenceNumber = 1 + (int)(Math.random() * 32000);
+                int SequenceNumber = 1 + (int) (Math.random() * 32000);
+
                 String client_msisdn = Long.toString(msisdn);
+
                 SubmitSm sm = new SubmitSm();
                 //Делаем скрытым сообщение
-                sm.setProtocolId((byte)0x40);
-                sm.setSourceAddress(new Address((byte)0x00, (byte)0x01,  mDBConnection.getSettings("my_msisdn")));
-                sm.setDestAddress(new Address((byte)0x01, (byte)0x01, client_msisdn));
+                sm.setProtocolId((byte) 0x40);
+                sm.setSourceAddress(new Address((byte) 0x00, (byte) 0x01, mDBConnection.getSettings("my_msisdn")));
+                sm.setDestAddress(new Address((byte) 0x01, (byte) 0x01, client_msisdn));
                 //Делаем скрытым сообщение
-                sm.setDataCoding((byte)0xf0);
+                sm.setDataCoding((byte) 0xf0);
                 //Делаем скрытым сообщение
                 sm.setShortMessage(new byte[0]);
                 sm.setSequenceNumber(SequenceNumber);
-                sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, "881010010".getBytes(),"sourcesub_address"));
+                sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, mDBConnection.getSettings(tarif).getBytes(), "sourcesub_address"));
                 sm.calculateAndSetCommandLength();
-                    SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(60));
+                SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(60));
+                if (resp.getCommandStatus() != 0) {
+                    tarif = getTarif(tarif);
+                    return send_core(sml,tarif);
+                }
+                else {
                     log.debug("SM sent successfull" + sm.toString());
-                    if (resp.getCommandStatus()!=0){
-                        log.debug("Submit issue is released");
-                        log.debug("{resp} "+resp.toString());
-                        QuerySm querySm = new QuerySm();
-                        querySm.setMessageId(resp.getMessageId());
-                        querySm.setSourceAddress(new Address((byte)0x00, (byte)0x01, mDBConnection.getSettings("my_msisdn")));
-                        querySm.calculateAndSetCommandLength();
-                        WindowFuture<Integer,PduRequest,PduResponse> future1 = session.sendRequestPdu(querySm, 10000, true);
-                        log.debug("Status request is opened");
-                        while (!future1.isDone()) {}
-                        QuerySmResp queryResp = (QuerySmResp)future1.getResponse();
-                        log.debug("{The answer getMessageState}" + queryResp.toString());
-                    }
-                client.HiddenRunFlag = false;
-            }
-            catch (SmppTimeoutException |SmppChannelException
-                    | UnrecoverablePduException | InterruptedException | RecoverablePduException ex){
+                    sml.setTransaction_id(tarif);
+                    return true;
+                }
+            } catch (SmppTimeoutException | SmppChannelException
+                    | UnrecoverablePduException | InterruptedException | RecoverablePduException ex) {
                 log.debug("{}", ex);
+                return false;
             }
+        } else return  false;
+    }
+
+    public String getTarif(String currTarif){
+        String newTraif="";
+        switch (currTarif){
+            case "20":
+                newTraif = "15";
+                break;
+            case "15":
+                newTraif = "10";
+                break;
+            case "10":
+                newTraif = "5";
+                break;
         }
+        return newTraif;
     }
 }

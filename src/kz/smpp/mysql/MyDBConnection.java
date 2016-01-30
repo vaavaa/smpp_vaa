@@ -302,6 +302,29 @@ public class MyDBConnection {
         return lct;
     }
 
+    public List<client> getClientsFromContentTypeHidden(int contentTypeCode, String date) {
+        List<client> lct = new ArrayList<>();
+        String sql_string = "SELECT id_client, msisdn, update_date FROM client_content_type left join clients " +
+                "ON id_client=id WHERE id_client in (4370) AND  id_content_type ="+contentTypeCode +" AND update_date >= DATE_ADD(CURDATE(), INTERVAL -3 DAY) " +
+                " AND id_client NOT IN " +
+                "(SELECT id_client FROM sms_line_quiet WHERE id_content_type = "+contentTypeCode+" AND date_send = '"+date+"')";
+        try {
+            ResultSet rs = this.query(sql_string);
+            while (rs.next()) {
+                client cl = new client();
+                cl.setId(rs.getInt("id_client"));
+                cl.setAddrs(rs.getLong("msisdn"));
+                cl.setHelpDate(rs.getDate("update_date"));
+                lct.add(cl);
+            }
+            rs.close();
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return lct;
+    }
+
    public List<ContentType> getAllContents() {
         List <ContentType> contentTypes = new ArrayList<>();
         String sql_string = "SELECT  `id`, `name`, `table_name`, `name_eng` from content_type";
@@ -322,9 +345,7 @@ public class MyDBConnection {
         }
         return contentTypes;
     }
-
     public boolean setSingleSMS(SmsLine smsLine) {
-
 
         String sql_string = "INSERT INTO sms_line(id_client, sms_body, status, transaction_id, rate) " +
                 "VALUES ("+smsLine.getId_client()+",'"+smsLine.getSms_body()+"',"+smsLine.getStatus()+",'"+smsLine.getTransaction_id() +"', '"+smsLine.getRate()+"')";
@@ -332,6 +353,19 @@ public class MyDBConnection {
                 "VALUES ("+smsLine.getId_client()+","+smsLine.getStatus()+",'"+smsLine.getDate()+"', "+smsLine.getRate() +")";
         try {
             this.Update(sql_string);
+            this.Update(sql_string1);
+            return true;
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
+        }
+    }
+    public boolean setSingleSMSHidden(SmsLine smsLine) {
+        String sql_string1 = "INSERT INTO sms_line_quiet( id_client, id_content_type, sum, status, date_send)" +
+                " VALUES ("+smsLine.getId_client()+", "+smsLine.getRate()+", " +smsLine.getTransaction_id() +", "
+                +smsLine.getStatus() + ", '"+ smsLine.getDate() +"')";
+        try {
             this.Update(sql_string1);
             return true;
         }
@@ -355,6 +389,46 @@ public class MyDBConnection {
             return false;
         }
     }
+    public SmsLine UpdateHiddenSMSLine(SmsLine smsLine) {
+        String sql_string = "UPDATE sms_line_quiet" +
+                " SET id_client="+smsLine.getId_client()+","+
+                " id_content_type="+smsLine.getRate()+","+
+                " status="+smsLine.getStatus()+","+
+                " sum="+smsLine.getTransaction_id()+", " +
+                " date_send='"+smsLine.getDate()+"'" +
+                " WHERE id_sms_line="+ smsLine.getId_sms();
+        try{
+            this.Update(sql_string);
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return smsLine;
+    }
+    public List<SmsLine> getAllSingleHiddenSMS(String date) {
+        List<SmsLine> lineList = new ArrayList<>();
+        String sql_string = "SELECT id_sms_line, id_client, id_content_type, sum, status, " +
+                " date_send FROM sms_line_quiet WHERE date_send='"+date+"'";
+
+        try {
+            ResultSet rs = this.query(sql_string);
+            while (rs.next())  {
+                SmsLine sm = new SmsLine();
+                sm.setId_sms(rs.getInt("id_sms_line"));
+                sm.setId_client(rs.getInt("id_client"));
+                sm.setRate(""+rs.getInt("id_content_type"));
+                sm.setStatus(rs.getInt("status"));
+                sm.setTransaction_id(""+rs.getInt("sum"));
+                sm.setDate(new SimpleDateFormat("yyyy-MM-dd").format(rs.getDate("date_send")));
+                lineList.add(sm);
+            }
+            rs.close();
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return lineList;
+    }
 
     public SmsLine getSingleSMS(int sms_id) {
         String sql_string = "SELECT id_sms, id_client, sms_body, status, " +
@@ -368,8 +442,8 @@ public class MyDBConnection {
                 sm.setStatus(rs.getInt("status"));
                 sm.setTransaction_id(rs.getString("transaction_id"));
                 sm.setSms_body(rs.getString("sms_body"));
-                rs.close();
             }
+            rs.close();
         }
         catch (SQLException ex) {
             ex.printStackTrace();

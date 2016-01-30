@@ -106,8 +106,8 @@ public class ServiceSendTask implements Runnable {
                 c.setTime(single_clnt.getHelpDate());
                 c.add(Calendar.DATE, 3);
                 single_clnt.setHelpDate(c.getTime());
-                if (System.currentTimeMillis() < single_clnt.getHelpDate().getTime()) sm.setRate(mDBConnection.getSettings("tarif_0"));
-                else sm.setRate(mDBConnection.getSettings("tarif_1"));
+                if (System.currentTimeMillis() < single_clnt.getHelpDate().getTime()) sm.setRate(mDBConnection.getSettings("0"));
+                else sm.setRate(mDBConnection.getSettings("20"));
                 sm.setDate(date);
                 mDBConnection.setSingleSMS(sm);
             }
@@ -132,7 +132,7 @@ public class ServiceSendTask implements Runnable {
                     if (single_sm.getRate().length() > 0)
                         sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, single_sm.getRate().getBytes(), "sourcesub_address"));
                     else
-                        sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, mDBConnection.getSettings("tarif_0").getBytes(), "sourcesub_address"));
+                        sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, mDBConnection.getSettings("0").getBytes(), "sourcesub_address"));
                     sm.setOptionalParameter(new Tlv(SmppConstants.TAG_MESSAGE_PAYLOAD, textBytes, "messagePayload"));
                     sm.calculateAndSetCommandLength();
 
