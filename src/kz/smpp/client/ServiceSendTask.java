@@ -40,7 +40,7 @@ public class ServiceSendTask implements Runnable {
         if (currentHour >= 9 && currentHour < 15) {
             Horoscope();
         }
-        if (currentHour >= 9 && currentHour < 15) {
+        if (currentHour >= 9 && currentHour < 20) {
             Rate();
         }
         if (currentHour >= 13 && currentHour < 21) {
@@ -94,6 +94,7 @@ public class ServiceSendTask implements Runnable {
 
         String date =  new SimpleDateFormat("yyyy-MM-dd").format(new Date());
         if (an_value.length()>0) {
+            //Выбираем всех клиентов которым нужно отправить контент сегоня, и этот контент не был еще отправлен.
             List<client> clnts = mDBConnection.getClientsFromContentType(conType, date);
             for (client single_clnt : clnts) {
                 SmsLine sm = new SmsLine();
@@ -103,13 +104,24 @@ public class ServiceSendTask implements Runnable {
                 sm.setTransaction_id("");
 
                 Calendar c = Calendar.getInstance();
-                c.setTime(single_clnt.getHelpDate());
-                c.add(Calendar.DATE, 3);
-                single_clnt.setHelpDate(c.getTime());
-                if (System.currentTimeMillis() < single_clnt.getHelpDate().getTime()) sm.setRate(mDBConnection.getSettings("0"));
-                else sm.setRate(mDBConnection.getSettings("20"));
+                c.setTime(new Date());
+                c.add(Calendar.DATE, -3);
+
                 sm.setDate(date);
-                mDBConnection.setSingleSMS(sm);
+                //рейт для всех одинаков = 0
+                sm.setRate(mDBConnection.getSettings("0"));
+                if (single_clnt.getHelpDate().getTime() < c.getTime().getTime()){
+                    //Если не попадает под тарификацию
+                    //То сразу создаем сообщение на отправку
+                    mDBConnection.setSingleSMS(sm);
+                }
+                else {
+                    //Если у клиента уже есть оплата за день, то отправляем рассылку
+                    if (mDBConnection.checkPayment(single_clnt.getId(),conType,date)){
+                        mDBConnection.setSingleSMS(sm);
+                    }
+                }
+
             }
             //Выбираем все анекдоты
             List<SmsLine> SMs = mDBConnection.getSMSLine(conType);
@@ -128,11 +140,8 @@ public class ServiceSendTask implements Runnable {
                     sm.setEsmClass((byte) 0);
                     sm.setShortMessage(null);
                     sm.setSequenceNumber(SequenceNumber);
-                    //Это сообщение по 20 тенге
-                    if (single_sm.getRate().length() > 0)
-                        sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, single_sm.getRate().getBytes(), "sourcesub_address"));
-                    else
-                        sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, mDBConnection.getSettings("0").getBytes(), "sourcesub_address"));
+                    //Все сообщения по 0 тарифу, но попадают они сюда если в Hidden появилась запись запись с суммой <20
+                    sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, mDBConnection.getSettings("0").getBytes(), "sourcesub_address"));
                     sm.setOptionalParameter(new Tlv(SmppConstants.TAG_MESSAGE_PAYLOAD, textBytes, "messagePayload"));
                     sm.calculateAndSetCommandLength();
 

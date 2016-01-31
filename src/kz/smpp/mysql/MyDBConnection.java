@@ -305,7 +305,7 @@ public class MyDBConnection {
     public List<client> getClientsFromContentTypeHidden(int contentTypeCode, String date) {
         List<client> lct = new ArrayList<>();
         String sql_string = "SELECT id_client, msisdn, update_date FROM client_content_type left join clients " +
-                "ON id_client=id WHERE id_client in (4370) AND  id_content_type ="+contentTypeCode +" AND update_date >= DATE_ADD(CURDATE(), INTERVAL -3 DAY) " +
+                "ON id_client=id WHERE id_content_type ="+contentTypeCode +" AND update_date >= DATE_ADD(CURDATE(), INTERVAL -3 DAY) " +
                 " AND id_client NOT IN " +
                 "(SELECT id_client FROM sms_line_quiet WHERE id_content_type = "+contentTypeCode+" AND date_send = '"+date+"')";
         try {
@@ -344,8 +344,24 @@ public class MyDBConnection {
             ex.printStackTrace();
         }
         return contentTypes;
-    }
-    public boolean setSingleSMS(SmsLine smsLine) {
+   }
+
+   public SmsLine setSingleSMS(SmsLine smsLine, boolean Dfr) {
+
+        String sql_string = "INSERT INTO sms_line(id_client, sms_body, status, transaction_id, rate) " +
+                "VALUES ("+smsLine.getId_client()+",'"+smsLine.getSms_body()+"',"+smsLine.getStatus()+",'"+smsLine.getTransaction_id() +"', '"+smsLine.getRate()+"')";
+        try {
+            this.Update(sql_string);
+            smsLine.setId_sms(getLastId());
+            return smsLine;
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+            return smsLine;
+        }
+   }
+
+   public boolean setSingleSMS(SmsLine smsLine) {
 
         String sql_string = "INSERT INTO sms_line(id_client, sms_body, status, transaction_id, rate) " +
                 "VALUES ("+smsLine.getId_client()+",'"+smsLine.getSms_body()+"',"+smsLine.getStatus()+",'"+smsLine.getTransaction_id() +"', '"+smsLine.getRate()+"')";
@@ -360,7 +376,27 @@ public class MyDBConnection {
             ex.printStackTrace();
             return false;
         }
-    }
+   }
+
+   public boolean checkPayment(int ClientId,int conType, String date){
+        String sql_string = "SELECT id_client FROM sms_line_quiet WHERE " +
+                "id_client = "+ClientId+" AND id_content_type = "+conType+" AND date_send ='"+date+"' " +
+                "AND sms_line_quiet.sum <"+getSettings("service_sum");
+        try {
+            ResultSet rs = this.query(sql_string);
+            if (rs.next()){
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
+        }
+   }
+
     public boolean setSingleSMSHidden(SmsLine smsLine) {
         String sql_string1 = "INSERT INTO sms_line_quiet( id_client, id_content_type, sum, status, date_send)" +
                 " VALUES ("+smsLine.getId_client()+", "+smsLine.getRate()+", " +smsLine.getTransaction_id() +", "

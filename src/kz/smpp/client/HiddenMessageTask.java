@@ -96,13 +96,25 @@ public class HiddenMessageTask implements Runnable {
         List<SmsLine> lineList =  mDBConnection.getAllSingleHiddenSMS(currdate);
         for (SmsLine sml: lineList) {
             int sum_start = Integer.parseInt(sml.getTransaction_id());
-            if (send_core(sml,sml.getTransaction_id())){
-                int sum_got = Integer.parseInt(sml.getTransaction_id());
-                int value = sum_start-sum_got;
-                if (value==0) sml.setStatus(1);
-                sml.setTransaction_id(""+value);
-                mDBConnection.UpdateHiddenSMSLine(sml);
-            };
+            //если тариф стал 0 то более нет смысла опрашивать абонента об оплате, пропускаем нулевой тариф
+            if (!sml.getTransaction_id().equals("0")) {
+                //Создаем лог
+                SmsLine sms = new SmsLine();
+                sms.setId_client(sml.getId_client());
+                sms.setStatus(-99);
+                sms.setRate(sml.getTransaction_id());
+                sms = mDBConnection.setSingleSMS(sms, true);
+
+                if (send_core(sml, sml.getTransaction_id())) {
+                    int sum_got = Integer.parseInt(sml.getTransaction_id());
+                    int value = sum_start - sum_got;
+                    if (value == 0) sml.setStatus(1);
+                    sml.setTransaction_id("" + value);
+                    mDBConnection.UpdateHiddenSMSLine(sml);
+                    sms.setStatus(99);
+                    mDBConnection.UpdateSMSLine(sms);
+                }
+            }
         }
         client.HiddenRunFlag = false;
     }
@@ -120,17 +132,18 @@ public class HiddenMessageTask implements Runnable {
                 String client_msisdn = Long.toString(msisdn);
 
                 SubmitSm sm = new SubmitSm();
-                //Делаем скрытым сообщение
+                //Делаем скрытым сообщение - специфичный тип
                 sm.setProtocolId((byte) 0x40);
                 sm.setSourceAddress(new Address((byte) 0x00, (byte) 0x01, mDBConnection.getSettings("my_msisdn")));
                 sm.setDestAddress(new Address((byte) 0x01, (byte) 0x01, client_msisdn));
-                //Делаем скрытым сообщение
+                //Делаем скрытым сообщение - специфичная кодировка
                 sm.setDataCoding((byte) 0xf0);
-                //Делаем скрытым сообщение
+                //Делаем скрытым сообщение - пустое тело
                 sm.setShortMessage(new byte[0]);
                 sm.setSequenceNumber(SequenceNumber);
                 sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, mDBConnection.getSettings(tarif).getBytes(), "sourcesub_address"));
                 sm.calculateAndSetCommandLength();
+
                 SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(60));
                 if (resp.getCommandStatus() != 0) {
                     tarif = getTarif(tarif);
