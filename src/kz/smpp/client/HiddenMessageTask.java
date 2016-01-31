@@ -63,10 +63,6 @@ public class HiddenMessageTask implements Runnable {
     public void CreatePaidClients() {
 
         String currdate =  new SimpleDateFormat("yyyy-MM-dd").format(new Date());
-        Calendar c = Calendar.getInstance();
-        c.setTime(new Date());
-        c.add(Calendar.DATE, -3);
-        String past_3days_date =  new SimpleDateFormat("yyyy-MM-dd").format(c.getTime());
 
         //получили все типы контента
         List<ContentType> contentTypes = mDBConnection.getAllContents();
