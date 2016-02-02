@@ -110,7 +110,8 @@ public class ServiceSendTask implements Runnable {
                 sm.setDate(date);
                 //рейт для всех одинаков = 0
                 sm.setRate(mDBConnection.getSettings("0"));
-                if (single_clnt.getHelpDate().getTime() < c.getTime().getTime()){
+                //Дата подписки больше чем текущая дата - 3 дня - Я просто баран!!!!
+                if (single_clnt.getHelpDate().getTime() > c.getTime().getTime()){
                     //Если не попадает под тарификацию
                     //То сразу создаем сообщение на отправку
                     mDBConnection.setSingleSMS(sm);

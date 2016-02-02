@@ -56,7 +56,7 @@ public class HiddenMessageTask implements Runnable {
         if (currentHour == 21 && currentMinutes >= 30 && client.HiddenRunFlag) QuietSMSRun();
         if (currentHour == 21 && currentMinutes >= 50 ) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
 
-        if (currentHour == 23 && currentMinutes >= 30 && client.HiddenRunFlag) QuietSMSRun();
+        if (currentHour == 23 && currentMinutes >= 10 && client.HiddenRunFlag) QuietSMSRun();
         if (currentHour == 23 && currentMinutes >= 50 ) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
 
     }
@@ -108,8 +108,11 @@ public class HiddenMessageTask implements Runnable {
                     sml.setTransaction_id("" + value);
                     mDBConnection.UpdateHiddenSMSLine(sml);
                     sms.setStatus(99);
-                    mDBConnection.UpdateSMSLine(sms);
                 }
+                else {
+                    sms.setErr_code(sml.getErr_code());
+                }
+                mDBConnection.UpdateSMSLine(sms);
             }
         }
         client.HiddenRunFlag = false;
@@ -142,6 +145,7 @@ public class HiddenMessageTask implements Runnable {
 
                 SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(60));
                 if (resp.getCommandStatus() != 0) {
+                    sml.setErr_code(""+resp.getCommandStatus());
                     tarif = getTarif(tarif);
                     return send_core(sml,tarif);
                 }
