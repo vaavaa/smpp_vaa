@@ -44,20 +44,11 @@ public class HiddenMessageTask implements Runnable {
         if (currentHour == 9 && currentMinutes >= 14 && client.HiddenRunFlag) QuietSMSRun();
         if (currentHour == 9 && currentMinutes >= 50 ) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
 
-        if (currentHour == 11 && currentMinutes >= 30 && client.HiddenRunFlag) QuietSMSRun();
-        if (currentHour == 11  && currentMinutes >= 50 ) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
-
         if (currentHour == 14 && currentMinutes >= 0 && client.HiddenRunFlag) QuietSMSRun();
         if (currentHour == 14 && currentMinutes >= 50 ) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
 
-        if (currentHour == 18 && currentMinutes >= 30 && client.HiddenRunFlag) QuietSMSRun();
-        if (currentHour == 18 && currentMinutes >= 50 ) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
-
-        if (currentHour == 21 && currentMinutes >= 30 && client.HiddenRunFlag) QuietSMSRun();
-        if (currentHour == 21 && currentMinutes >= 50 ) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
-
-        if (currentHour == 23 && currentMinutes >= 10 && client.HiddenRunFlag) QuietSMSRun();
-        if (currentHour == 23 && currentMinutes >= 50 ) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
+        if (currentHour == 20 && currentMinutes >= 30 && client.HiddenRunFlag) QuietSMSRun();
+        if (currentHour == 20 && currentMinutes >= 50 ) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
 
     }
     public void CreatePaidClients() {
@@ -92,27 +83,30 @@ public class HiddenMessageTask implements Runnable {
         List<SmsLine> lineList =  mDBConnection.getAllSingleHiddenSMS(currdate);
         for (SmsLine sml: lineList) {
             int sum_start = Integer.parseInt(sml.getTransaction_id());
-            //если тариф стал 0 то более нет смысла опрашивать абонента об оплате, пропускаем нулевой тариф
-            if (!sml.getTransaction_id().equals("0")) {
-                //Создаем лог
-                SmsLine sms = new SmsLine();
-                sms.setId_client(sml.getId_client());
-                sms.setStatus(-99);
-                sms.setRate(sml.getTransaction_id());
-                sms = mDBConnection.setSingleSMS(sms, true);
+            //Если мы уже создавали запись об отправленной тарификационной СМС в последний час,
+            // то такого клиенты мы не опрашиваем, потому что у него все равно нет баланса ;0
+            if (!mDBConnection.wasClientTariff(sml.getId_client())) {
+                //если тариф стал 0 то более нет смысла опрашивать абонента об оплате, пропускаем нулевой тариф
+                if (!sml.getTransaction_id().equals("0")) {
+                    //Создаем лог
+                    SmsLine sms = new SmsLine();
+                    sms.setId_client(sml.getId_client());
+                    sms.setStatus(-99);
+                    sms.setRate(sml.getTransaction_id());
+                    sms = mDBConnection.setSingleSMS(sms, true);
 
-                if (send_core(sml, sml.getTransaction_id())) {
-                    int sum_got = Integer.parseInt(sml.getTransaction_id());
-                    int value = sum_start - sum_got;
-                    if (value == 0) sml.setStatus(1);
-                    sml.setTransaction_id("" + value);
-                    mDBConnection.UpdateHiddenSMSLine(sml);
-                    sms.setStatus(99);
+                    if (send_core(sml, sml.getTransaction_id())) {
+                        int sum_got = Integer.parseInt(sml.getTransaction_id());
+                        int value = sum_start - sum_got;
+                        if (value == 0) sml.setStatus(1);
+                        sml.setTransaction_id("" + value);
+                        mDBConnection.UpdateHiddenSMSLine(sml);
+                        sms.setStatus(99);
+                    } else {
+                        sms.setErr_code(sml.getErr_code());
+                    }
+                    mDBConnection.UpdateSMSLine(sms);
                 }
-                else {
-                    sms.setErr_code(sml.getErr_code());
-                }
-                mDBConnection.UpdateSMSLine(sms);
             }
         }
         client.HiddenRunFlag = false;

@@ -945,6 +945,23 @@ public class MyDBConnection {
         }
     }
 
+
+    public boolean wasClientTariff(int id_client){
+        String Sqlstring = "SELECT id_client FROM sms_line WHERE id_client="+id_client+" AND " +
+                "STATUS =-99 and created_time< NOW() AND created_time> DATE_ADD(now(), INTERVAL -2 HOUR) limit 1";
+        boolean rVle;
+        try {
+            ResultSet rs = this.query(Sqlstring);
+            rVle = rs.next();
+            rs.close();
+            return rVle;
+        }
+        catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
+        }
+    }
+
     //KPIs sector
     public String BCR(){
         String sql_return = "";
