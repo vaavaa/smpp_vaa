@@ -444,7 +444,7 @@ public class MyDBConnection {
     public List<SmsLine> getAllSingleHiddenSMS(String date) {
         List<SmsLine> lineList = new ArrayList<>();
         String sql_string = "SELECT id_sms_line, id_client, id_content_type, sum, status, " +
-                " date_send FROM sms_line_quiet WHERE date_send='"+date+"'";
+                " date_send FROM sms_line_quiet WHERE date_send='"+date+"' and status = 0" ;
 
         try {
             ResultSet rs = this.query(sql_string);
@@ -657,32 +657,34 @@ public class MyDBConnection {
         contentType= getContentType("content_anecdot");
         client clnt = setNewClient(msisdn);
         LinkedList<ContentType> llct= getClientsContentTypes(clnt);
-        if (llct.size()==0){
-           contentType = getContentType(this.getSettings("FirstService"));
-           setNewClientsContentTypes(clnt, contentType);
-        }
-        else {
-             for (int j = 0; j<=table_names.length-1;j++) {
-                 for (ContentType ct : llct) {
-                     if (ct.getTable_name().equals(table_names[j])){
-                        table_names[j] = "";
-                        break;
-                     }
-
-                 }
-             }
-             for (String str:table_names) {
-                 if (str.length()>0) {
-                    contentType = getContentType(str);
-                    setNewClientsContentTypes(clnt, contentType);
-                    break;
-                 }
-             }
-        }
 
         String serviceName;
-        if (contentType.getName().length()==0) serviceName = this.getSettings("AllServices");
-        else serviceName = contentType.getName();
+        if (llct.size() == Integer.parseInt(this.getSettings("ServicesCount"))){
+            serviceName = this.getSettings("AllServices");
+        }
+        else {
+            if (llct.size() == 0) {
+                contentType = getContentType(this.getSettings("FirstService"));
+                setNewClientsContentTypes(clnt, contentType);
+            } else {
+                for (int j = 0; j <= table_names.length - 1; j++) {
+                    for (ContentType ct : llct) {
+                        if (ct.getTable_name().equals(table_names[j])) {
+                            table_names[j] = "";
+                            break;
+                        }
+                    }
+                }
+                for (String str : table_names) {
+                    if (str.length() > 0) {
+                        contentType = getContentType(str);
+                        setNewClientsContentTypes(clnt, contentType);
+                        break;
+                    }
+                }
+            }
+            serviceName = contentType.getName();
+        }
 
         return serviceName;
     }
@@ -728,8 +730,26 @@ public class MyDBConnection {
         return vle;
     }
 
-    public String getRateFromDate(String dte) {
-        String sql_string = "SELECT currency FROM content_rate WHERE status = 0 and rate_date='"+dte+"' LIMIT 1";
+    public String getRateFromDate(Date dte) {
+        //переводим дату в формат mySQL
+        String date_string =  new SimpleDateFormat("yyyy-MM-dd").format(dte);
+        //Иницииуруем новый Calendar
+        Calendar cal = Calendar.getInstance();
+        //Загружаем в него переданую дату
+        cal.setTime(dte);
+
+        //Если этол суббота, то прибавим два дня к дате, потому что у нас дата есть только за понедельник
+        if (cal.get(Calendar.DAY_OF_WEEK) == 7) {
+            cal.add(Calendar.DATE, 2);
+            date_string = new SimpleDateFormat("yyyy-MM-dd").format(cal.getTime());
+        }
+        //Если этол воскресенье, то прибавим один день  к дате, потому что у нас дата есть только за понедельник
+        if (cal.get(Calendar.DAY_OF_WEEK) == 1) {
+            cal.add(Calendar.DATE, 1);
+            date_string = new SimpleDateFormat("yyyy-MM-dd").format(cal.getTime());
+        }
+
+        String sql_string = "SELECT currency FROM content_rate WHERE status = 0 and rate_date='"+date_string+"' LIMIT 1";
         String vle="";
         try {
             ResultSet rs = this.query(sql_string);
@@ -954,6 +974,8 @@ public class MyDBConnection {
             ResultSet rs = this.query(Sqlstring);
             rVle = rs.next();
             rs.close();
+            //Если есть запись, то возвращеме труе
+            //Если нет записи возвращеме фалсе
             return rVle;
         }
         catch (SQLException ex) {

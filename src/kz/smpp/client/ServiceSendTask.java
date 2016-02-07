@@ -72,9 +72,8 @@ public class ServiceSendTask implements Runnable {
 
     private void Rate(){
         if (client.state == ClientState.BOUND) {
-            String date =  new SimpleDateFormat("yyyy-MM-dd").format(new Date());
             // Создаем очередь для отправки
-            String an_value = mDBConnection.getRateFromDate(date);
+            String an_value = mDBConnection.getRateFromDate(new Date());
             //У нас третий контент для rate
             RunSMSSend(3,an_value);
         }
