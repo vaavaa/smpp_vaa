@@ -1,6 +1,5 @@
 package kz.smpp.va;
 
-import com.cloudhopper.commons.util.FileAlreadyExistsException;
 import com.cloudhopper.commons.util.windowing.WindowFuture;
 import com.cloudhopper.smpp.SmppBindType;
 import com.cloudhopper.smpp.SmppSessionConfiguration;
@@ -11,20 +10,10 @@ import com.cloudhopper.smpp.pdu.SubmitSmResp;
 import com.cloudhopper.smpp.type.LoggingOptions;
 import com.cloudhopper.smpp.type.SmppInvalidArgumentException;
 import kz.smpp.client.Client;
-import kz.smpp.mysql.ContentType;
 import kz.smpp.mysql.MyDBConnection;
-import kz.smpp.mysql.SmsLine;
-import kz.smpp.mysql.client;
-import kz.smpp.rome.*;
-import kz.smpp.utils.AllUtils;
 import kz.smpp.jsoup.ParseHtml;
-import org.ini4j.Ini;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -124,6 +113,7 @@ public class Main {
             sessionConfig.setPort(Integer.parseInt(mDBConnection.getSettings("port")));
             sessionConfig.setSystemId(mDBConnection.getSettings("partner_id"));
             sessionConfig.setPassword(mDBConnection.getSettings("partner_pws"));
+            sessionConfig.setBindTimeout(30000L);
 
             LoggingOptions loggingOptions = new LoggingOptions();
             sessionConfig.setLoggingOptions(loggingOptions);
@@ -131,7 +121,7 @@ public class Main {
             client = new Client(sessionConfig, mDBConnection);
             client.setElinkPeriod(40);
             client.setSessionHandler(new MySmppSessionHandler(client,mDBConnection));
-            pool = Executors.newFixedThreadPool(2);
+            pool = Executors.newFixedThreadPool(7);
             pool.submit(client);
 
             client.start();

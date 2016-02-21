@@ -443,22 +443,22 @@ public class MyDBConnection {
     }
     public List<SmsLine> getAllSingleHiddenSMS(String date) {
         List<SmsLine> lineList = new ArrayList<>();
-        String sql_string = "SELECT id_sms_line, id_client, id_content_type, sum, status, " +
-                " date_send FROM sms_line_quiet WHERE date_send='"+date+"' and status = 0" ;
+        String sql_string = "SELECT id_sms_line, id_client, id_content_type, sum, " +
+                " date_send FROM sms_line_quiet WHERE status = 0 AND date_send='"+date+"'" ;
 
         try {
-            ResultSet rs = this.query(sql_string);
-            while (rs.next())  {
+            ResultSet rsm = this.query(sql_string);
+            while (rsm.next())  {
                 SmsLine sm = new SmsLine();
-                sm.setId_sms(rs.getInt("id_sms_line"));
-                sm.setId_client(rs.getInt("id_client"));
-                sm.setRate(""+rs.getInt("id_content_type"));
-                sm.setStatus(rs.getInt("status"));
-                sm.setTransaction_id(""+rs.getInt("sum"));
-                sm.setDate(new SimpleDateFormat("yyyy-MM-dd").format(rs.getDate("date_send")));
+                sm.setId_sms(rsm.getInt("id_sms_line"));
+                sm.setId_client(rsm.getInt("id_client"));
+                sm.setRate(""+rsm.getInt("id_content_type"));
+                sm.setStatus(0);
+                sm.setTransaction_id(""+rsm.getInt("sum"));
+                sm.setDate(new SimpleDateFormat("yyyy-MM-dd").format(rsm.getDate("date_send")));
                 lineList.add(sm);
             }
-            rs.close();
+            rsm.close();
         }
         catch (SQLException ex) {
             ex.printStackTrace();
