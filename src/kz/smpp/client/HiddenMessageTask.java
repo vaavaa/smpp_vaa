@@ -41,8 +41,8 @@ public class HiddenMessageTask implements Runnable {
         if (currentHour == 1 && currentMinutes >= 0 && client.HiddenRunFlag) {QuietSMSRun();}
         if (currentHour == 1 && currentMinutes >= 50 ) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
 
-        if (currentHour == 9 && currentMinutes >= 0 && client.HiddenRunFlag) QuietSMSRun();
-        if (currentHour == 9 && currentMinutes >= 50 ) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
+        if (currentHour == 9 && currentMinutes >= 30 && client.HiddenRunFlag) QuietSMSRun();
+        if (currentHour == 9 && currentMinutes >= 55 ) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
 
         if (currentHour == 14 && currentMinutes >= 0 && client.HiddenRunFlag) QuietSMSRun();
         if (currentHour == 14 && currentMinutes >= 50 ) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
