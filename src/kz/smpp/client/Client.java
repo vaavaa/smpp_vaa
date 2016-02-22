@@ -48,7 +48,7 @@ public class Client implements Runnable {
     public Client(SmppSessionConfiguration cfg, MyDBConnection mDBCon) {
         this.cfg = cfg;
         this.mDBConnection = mDBCon;
-        this.timer = Executors.newScheduledThreadPool(9);
+        this.timer = Executors.newScheduledThreadPool(10);
     }
 
     @Override
