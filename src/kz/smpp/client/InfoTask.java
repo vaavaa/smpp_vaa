@@ -86,10 +86,7 @@ public class InfoTask implements Runnable {
                 byte[] textBytes = CharsetUtil.encode(single_sm.getSms_body(), "UCS-2");
 
                 SubmitSm sm = new SubmitSm();
-                if (single_sm.getTransaction_id().length()>0)
-                    sm.setSourceAddress(new Address((byte)0x00, (byte)0x01,  mDBConnection.getSettings("my_msisdn").concat("#"+single_sm.getTransaction_id())));
-                else
-                    sm.setSourceAddress(new Address((byte)0x00, (byte)0x01,  mDBConnection.getSettings("my_msisdn")));
+                sm.setSourceAddress(new Address((byte)0x00, (byte)0x01,  mDBConnection.getSettings("my_msisdn")));
                 sm.setDestAddress(new Address((byte)0x01, (byte)0x01, client_msisdn));
                 sm.setDataCoding((byte)8);
                 sm.setEsmClass((byte)0);
