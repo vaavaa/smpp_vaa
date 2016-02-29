@@ -26,5 +26,9 @@ public class SystemServiceTask implements  Runnable {
             mDBConnection.backupData("C:\\xampp\\mysql\\bin\\mysqldump.exe", "localhost", "3306", "root", "", "smpp_clients", "C:\\SMPP\\backups\\backup.sql");
             log.debug("BackUp should be created...");
         }
+        //помечаем клиентов как неплатежеспособных
+        if (currentHour >2 && currentHour <= 5){
+            mDBConnection.MarkClientsInactive();
+        }
 	}
 }

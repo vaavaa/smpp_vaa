@@ -850,23 +850,6 @@ public class MyDBConnection {
         return status;
     }
 
-    public String Convert_Date(String oldDateString, String OLD_FORMAT, String NEW_FORMAT) {
-        if (OLD_FORMAT.length() == 0) OLD_FORMAT = "dd.MM.yy";
-        if (NEW_FORMAT.length() == 0) NEW_FORMAT = "yyyy-MM-dd";
-        String newDateString;
-
-        SimpleDateFormat sdf = new SimpleDateFormat(OLD_FORMAT, Locale.ENGLISH);
-        try {
-            Date d = sdf.parse(oldDateString);
-            sdf.applyPattern(NEW_FORMAT);
-            newDateString = sdf.format(d);
-            return newDateString;
-        } catch (ParseException ex) {
-            return null;
-        }
-
-    }
-
     public boolean metcast() {
         String StringToClear = this.getSettings("StringToClear");
         String BaseURL = this.getSettings("weather_link");
@@ -1010,6 +993,18 @@ public class MyDBConnection {
         } catch (SQLException ex) {
             ex.printStackTrace();
             return false;
+        }
+    }
+
+    public void MarkClientsInactive(){
+        String SqlString = "Update clients " +
+                "SET status = -1 " +
+                "WHERE status <>-1 AND id in( " +
+                "select id_client FROM sms_line_quiet WHERE status=1 GROUP BY id_client HAVING MAX(date_send) <= (DATE_ADD(CURDATE(), INTERVAL -30 DAY)))";
+        try {
+            this.Update(SqlString);
+        }catch (SQLException ex) {
+            ex.printStackTrace();
         }
     }
 
