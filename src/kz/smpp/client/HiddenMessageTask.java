@@ -38,33 +38,38 @@ public class HiddenMessageTask implements Runnable {
         int currentHour = cal.get(Calendar.HOUR_OF_DAY);
         int currentMinutes = cal.get(Calendar.MINUTE);
 
-        if (currentHour == 0 && currentMinutes >= 0 && client.HiddenRunFlag) {QuietSMSRun();}
-        if (currentHour == 0 && currentMinutes >= 50 ) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
+        if (currentHour == 0 && currentMinutes >= 0 && client.HiddenRunFlag) {
+            QuietSMSRun();
+        }
+        if (currentHour == 0 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
 
-        if (currentHour == 1 && currentMinutes >= 0 && client.HiddenRunFlag) {QuietSMSRun();}
-        if (currentHour == 1 && currentMinutes >= 50 ) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
+        if (currentHour == 1 && currentMinutes >= 0 && client.HiddenRunFlag) {
+            QuietSMSRun();
+        }
+        if (currentHour == 1 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
 
         if (currentHour == 9 && currentMinutes >= 30 && client.HiddenRunFlag) QuietSMSRun();
-        if (currentHour == 9 && currentMinutes >= 55 ) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
+        if (currentHour == 9 && currentMinutes >= 55) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
 
         if (currentHour == 14 && currentMinutes >= 0 && client.HiddenRunFlag) QuietSMSRun();
-        if (currentHour == 14 && currentMinutes >= 50 ) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
+        if (currentHour == 14 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
 
         if (currentHour == 17 && currentMinutes >= 0 && client.HiddenRunFlag) QuietSMSRun();
-        if (currentHour == 17 && currentMinutes >= 50 ) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
+        if (currentHour == 17 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
 
         if (currentHour == 22 && currentMinutes >= 0 && client.HiddenRunFlag) QuietSMSRun();
-        if (currentHour == 22 && currentMinutes >= 50 ) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
+        if (currentHour == 22 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
 
     }
+
     public void CreatePaidClients() {
 
-        String currdate =  new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+        String currdate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
 
         //получили все типы контента
         List<ContentType> contentTypes = mDBConnection.getAllContents();
         //Перебираем каждый тип контента
-        for (ContentType ct: contentTypes) {
+        for (ContentType ct : contentTypes) {
             //Все клиенты подписавшиеся на сервис и тех которых нет еще в таблице лога за эту дату и дата сервиса уже проходит по оплате
             List<kz.smpp.mysql.client> clnts = mDBConnection.getClientsFromContentTypeHidden(ct.getId(), currdate);
             for (client single_clnt : clnts) {
@@ -73,7 +78,7 @@ public class HiddenMessageTask implements Runnable {
                 //Статус ожидает обработки, 1 - обработка закончена
                 smLn.setStatus(0);
                 //Тип понтента
-                smLn.setRate(""+ct.getId());
+                smLn.setRate("" + ct.getId());
                 //Сумма которую снимаем с клиента
                 smLn.setTransaction_id(mDBConnection.getSettings("service_sum"));
                 //Текущая дата
@@ -83,11 +88,11 @@ public class HiddenMessageTask implements Runnable {
         }
     }
 
-    public void  QuietSMSRun(){
-        CreatePaidClients ();
-        String currdate =  new SimpleDateFormat("yyyy-MM-dd").format(new Date());
-        List<SmsLine> lineList =  mDBConnection.getAllSingleHiddenSMS(currdate);
-        for (SmsLine sml: lineList) {
+    public void QuietSMSRun() {
+        CreatePaidClients();
+        String currdate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+        List<SmsLine> lineList = mDBConnection.getAllSingleHiddenSMS(currdate);
+        for (SmsLine sml : lineList) {
             int sum_start = Integer.parseInt(sml.getTransaction_id());
             //Если мы уже создавали запись об отправленной тарификационной СМС в последний час,
             // то такого клиенты мы не опрашиваем, потому что у него все равно нет баланса ;0
@@ -120,7 +125,7 @@ public class HiddenMessageTask implements Runnable {
 
     //рекурсивная функция прохода по всем тарифам
     public boolean send_core(SmsLine sml, String tarif) {
-        if (tarif.length()==0) return false;
+        if (tarif.length() == 0) return false;
         if (client.state == ClientState.BOUND) {
             SmppSession session = client.getSession();
             Long msisdn = mDBConnection.getClient(sml.getId_client()).getAddrs();
@@ -145,11 +150,10 @@ public class HiddenMessageTask implements Runnable {
 
                 SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(60));
                 if (resp.getCommandStatus() != 0) {
-                    sml.setErr_code(""+resp.getCommandStatus());
+                    sml.setErr_code("" + resp.getCommandStatus());
                     tarif = getTarif(tarif);
-                    return send_core(sml,tarif);
-                }
-                else {
+                    return send_core(sml, tarif);
+                } else {
                     log.debug("SM sent successfull" + sm.toString());
                     sml.setTransaction_id(tarif);
                     return true;
@@ -159,12 +163,12 @@ public class HiddenMessageTask implements Runnable {
                 log.debug("{}", ex);
                 return false;
             }
-        } else return  false;
+        } else return false;
     }
 
-    public String getTarif(String currTarif){
-        String newTraif="";
-        switch (currTarif){
+    public String getTarif(String currTarif) {
+        String newTraif = "";
+        switch (currTarif) {
             case "20":
                 newTraif = "15";
                 break;

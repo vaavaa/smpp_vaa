@@ -272,7 +272,7 @@ public class MyDBConnection {
     public List<client> getClientsFromContentType(int contentTypeCode, String date) {
         List<client> lct = new ArrayList<>();
         String sql_string = "SELECT id_client, msisdn, update_date FROM client_content_type left join clients " +
-                "ON id_client=id WHERE id_content_type =" + contentTypeCode + " AND clients.id=0 AND id_client NOT IN " +
+                "ON id_client=id WHERE clients.status= 0 AND id_content_type =" + contentTypeCode + " AND id_client NOT IN " +
                 "(SELECT id_client FROM sms_line_main WHERE id_content_type = " + contentTypeCode + " AND date_send = '" + date + "')";
         try {
             ResultSet rs = this.query(sql_string);
@@ -294,7 +294,7 @@ public class MyDBConnection {
         //Раз мы используем туже таблицу для анализа отправки сообщений, то  статусы отправленых сообщений мы сделали
         //101 и -101 в случае ошибки отправки.
         String sql_string = "SELECT id_client, msisdn, MIN(update_date) as updDte FROM clients left join client_content_type " +
-                "ON id=id_client WHERE '"+date+"' >= DATE_ADD(update_date, INTERVAL 1 MONTH) AND id_client NOT IN " +
+                "ON id=id_client WHERE clients.status= 0 AND '"+date+"' >= DATE_ADD(update_date, INTERVAL 1 MONTH) AND id_client NOT IN " +
                 "(SELECT id_client FROM sms_line WHERE (status = 101 or status = -101) AND created_time between " +
                 "DATE_ADD('"+date+"', INTERVAL -1 MONTH) AND DATE_ADD('" + date + "',INTERVAL 1 DAY)) GROUP by id_client, msisdn";
         try {
@@ -316,7 +316,7 @@ public class MyDBConnection {
     public List<client> getClientsFromContentTypeHidden(int contentTypeCode, String date) {
         List<client> lct = new ArrayList<>();
         String sql_string = "SELECT id_client, msisdn, update_date FROM client_content_type left join clients " +
-                "ON id_client=id WHERE clients.id = 0 AND id_content_type =" + contentTypeCode + " AND update_date < DATE_ADD(CURDATE(), INTERVAL -3 DAY) " +
+                "ON id_client=id WHERE clients.status= 0 AND id_content_type =" + contentTypeCode + " AND update_date < DATE_ADD(CURDATE(), INTERVAL -3 DAY) " +
                 " AND id_client NOT IN " +
                 "(SELECT id_client FROM sms_line_quiet WHERE id_content_type = " + contentTypeCode + " AND date_send = '" + date + "')";
         try {
@@ -1001,6 +1001,16 @@ public class MyDBConnection {
                 "SET status = -1 " +
                 "WHERE status <>-1 AND id in( " +
                 "select id_client FROM sms_line_quiet WHERE status=1 GROUP BY id_client HAVING MAX(date_send) <= (DATE_ADD(CURDATE(), INTERVAL -30 DAY)))";
+        try {
+            this.Update(SqlString);
+        }catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+    }
+    public void MarkClientsActive(){
+        String SqlString = "Update clients " +
+                "SET status = 0 " +
+                "WHERE status = -1";
         try {
             this.Update(SqlString);
         }catch (SQLException ex) {
