@@ -38,28 +38,28 @@ public class HiddenMessageTask implements Runnable {
         int currentHour = cal.get(Calendar.HOUR_OF_DAY);
         int currentMinutes = cal.get(Calendar.MINUTE);
 
-        if (currentHour == 0 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
         if (currentHour == 0 && currentMinutes >= 0 && client.HiddenRunFlag) {
             QuietSMSRun();
         }
+        if (currentHour == 0 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
 
-        if (currentHour == 1 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
         if (currentHour == 1 && currentMinutes >= 0 && client.HiddenRunFlag) {
             QuietSMSRun();
         }
+        if (currentHour == 1 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
 
-        if (currentHour == 9 && currentMinutes >= 55) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
         if (currentHour == 9 && currentMinutes >= 30 && client.HiddenRunFlag) QuietSMSRun();
+        if (currentHour == 9 && currentMinutes >= 55) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
 
-        if (currentHour == 14 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
         if (currentHour == 14 && currentMinutes >= 0 && client.HiddenRunFlag) QuietSMSRun();
+        if (currentHour == 14 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
 
-
-        if (currentHour == 17 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
         if (currentHour == 17 && currentMinutes >= 0 && client.HiddenRunFlag) QuietSMSRun();
+        if (currentHour == 17 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
 
-        if (currentHour == 22 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
         if (currentHour == 22 && currentMinutes >= 0 && client.HiddenRunFlag) QuietSMSRun();
+        if (currentHour == 22 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
+
     }
 
     public void CreatePaidClients() {

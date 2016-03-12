@@ -57,7 +57,7 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
             if (dlr.getDataCoding()==0x08) textBytes = CharsetUtil.decode(textMessage, "UCS-2");
             else  textBytes = CharsetUtil.decode(textMessage,"GSM");
 
-            switch (textBytes.toLowerCase()) {
+            switch (textBytes.toLowerCase().trim()) {
                 case "стоп":
                 case "stop":
                     //Запускаем цепочку обработки входящего сообщения в случае если стоп
