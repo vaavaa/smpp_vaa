@@ -981,7 +981,7 @@ public class MyDBConnection {
 
     public boolean wasClientTariff(int id_client) {
         String Sqlstring = "SELECT id_client FROM sms_line WHERE id_client=" + id_client + " AND " +
-                "STATUS =-99 and created_time< NOW() AND created_time> DATE_ADD(now(), INTERVAL -2 HOUR) limit 1";
+                "STATUS =-99 AND created_time> DATE_ADD(now(), INTERVAL -2 HOUR) limit 1";
         boolean rVle;
         try {
             ResultSet rs = this.query(Sqlstring);

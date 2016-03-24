@@ -37,7 +37,7 @@ public class ServiceSendTask implements Runnable {
         int currentHour = cal.get(Calendar.HOUR_OF_DAY);
         int currentMinutes = cal.get(Calendar.MINUTE);
 
-        if (currentHour >= 9 && currentHour < 15) {
+        if (currentHour >= 9 && currentHour < 18) {
             Horoscope();
         }
         if (currentHour >= 9 && currentHour < 20) {
