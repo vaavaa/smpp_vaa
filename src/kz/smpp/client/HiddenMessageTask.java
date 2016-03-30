@@ -38,24 +38,12 @@ public class HiddenMessageTask implements Runnable {
         int currentHour = cal.get(Calendar.HOUR_OF_DAY);
         int currentMinutes = cal.get(Calendar.MINUTE);
 
-        if (currentHour == 0 && currentMinutes >= 0 && client.HiddenRunFlag) {QuietSMSRun();}
-        if (currentHour == 0 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
-
-        if (currentHour == 5 && currentMinutes >= 0 && client.HiddenRunFlag) {QuietSMSRun();}
-        if (currentHour == 5 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
-
-        if (currentHour == 9 && currentMinutes >= 30 && client.HiddenRunFlag) QuietSMSRun();
-        if (currentHour == 9 && currentMinutes >= 55) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
-
-        if (currentHour == 14 && currentMinutes >= 0 && client.HiddenRunFlag) QuietSMSRun();
-        if (currentHour == 14 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
-
-        if (currentHour == 19 && currentMinutes >= 0 && client.HiddenRunFlag) QuietSMSRun();
-        if (currentHour == 19 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
-
-        if (currentHour == 22 && currentMinutes >= 0 && client.HiddenRunFlag) QuietSMSRun();
-        if (currentHour == 22 && currentMinutes >= 50) if (!client.HiddenRunFlag) client.HiddenRunFlag = true;
-
+        if (currentHour == 0 && currentMinutes >= 30) QuietSMSRun();
+        if (currentHour == 5 && currentMinutes >= 30) QuietSMSRun();
+        if (currentHour == 10 && currentMinutes >= 30) QuietSMSRun();
+        if (currentHour == 14 && currentMinutes >= 30) QuietSMSRun();
+        if (currentHour == 18 && currentMinutes >= 30) QuietSMSRun();
+        if (currentHour == 22 && currentMinutes >= 0) QuietSMSRun();
     }
 
     private void CreatePaidClients() {
@@ -85,35 +73,38 @@ public class HiddenMessageTask implements Runnable {
     }
 
     private void QuietSMSRun() {
-        CreatePaidClients();
-        String currdate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
-        List<SmsLine> lineList = mDBConnection.getAllSingleHiddenSMS(currdate);
-        for (SmsLine sml : lineList) {
+        if (mDBConnection.getSettings("HiddenServiceSend").equals("0")) {
+            mDBConnection.setSettings("HiddenServiceSend", "1");
+            CreatePaidClients();
+            String currdate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+            List<SmsLine> lineList = mDBConnection.getAllSingleHiddenSMS(currdate);
+            for (SmsLine sml : lineList) {
 
-            //Если мы уже создавали запись об отправленной тарификационной СМС в последний час,
-            // то такого клиенты мы не опрашиваем, потому что у него все равно нет баланса ;0
-            if (!mDBConnection.wasClientTariff(sml.getId_client())) {
-                //если тариф стал 0 то более нет смысла опрашивать абонента об оплате, пропускаем нулевой тариф
-                if (!sml.getTransaction_id().equals("0")) {
-                    //Создаем лог
-                    SmsLine sms = new SmsLine();
-                    sms.setId_client(sml.getId_client());
-                    sms.setStatus(-99);
-                    sms.setRate(sml.getTransaction_id());
-                    sms = mDBConnection.setSingleSMS(sms, true);
+                //Если мы уже создавали запись об отправленной тарификационной СМС в последний час,
+                // то такого клиенты мы не опрашиваем, потому что у него все равно нет баланса ;0
+                if (!mDBConnection.wasClientTariff(sml.getId_client())) {
+                    //если тариф стал 0 то более нет смысла опрашивать абонента об оплате, пропускаем нулевой тариф
+                    if (!sml.getTransaction_id().equals("0")) {
+                        //Создаем лог
+                        SmsLine sms = new SmsLine();
+                        sms.setId_client(sml.getId_client());
+                        sms.setStatus(-99);
+                        sms.setRate(sml.getTransaction_id());
+                        sms = mDBConnection.setSingleSMS(sms, true);
 
-                    if (send_core(sml, sml.getTransaction_id())) {
-                        sml.setStatus(1);
-                        sms.setStatus(99);
-                    } else {
-                        sms.setErr_code(sml.getErr_code());
+                        if (send_core(sml, sml.getTransaction_id())) {
+                            sml.setStatus(1);
+                            sms.setStatus(99);
+                        } else {
+                            sms.setErr_code(sml.getErr_code());
+                        }
+                        mDBConnection.UpdateHiddenSMSLine(sml);
+                        mDBConnection.UpdateSMSLine(sms);
                     }
-                    mDBConnection.UpdateHiddenSMSLine(sml);
-                    mDBConnection.UpdateSMSLine(sms);
                 }
             }
+            mDBConnection.setSettings("HiddenServiceSend", "0");
         }
-        client.HiddenRunFlag = false;
     }
 
     //рекурсивная функция прохода по всем тарифам
@@ -152,8 +143,8 @@ public class HiddenMessageTask implements Runnable {
                     return false;
                 } else {
                     itarif = itarif - 5;
-                    sml.setTransaction_id(""+itarif);
-                    if (itarif > 0) return send_core(sml, ""+itarif);
+                    sml.setTransaction_id("" + itarif);
+                    if (itarif > 0) return send_core(sml, "" + itarif);
                     else return true;
                 }
             } catch (SmppTimeoutException | SmppChannelException

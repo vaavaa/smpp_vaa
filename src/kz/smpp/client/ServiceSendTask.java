@@ -32,22 +32,20 @@ public class ServiceSendTask implements Runnable {
 
     @Override
     public void run() {
-        //Задаем временые промежутки когда будет запущена рассылка
-        Calendar cal = Calendar.getInstance();
-        int currentHour = cal.get(Calendar.HOUR_OF_DAY);
-        int currentMinutes = cal.get(Calendar.MINUTE);
+        if (mDBConnection.getSettings("ServiceSend").equals("0")) {
+            mDBConnection.setSettings("ServiceSend","1");
 
-        if (currentHour >= 9 && currentHour < 18) {
-            Horoscope();
-        }
-        if (currentHour >= 9 && currentHour < 20) {
-            Rate();
-        }
-        if (currentHour >= 13 && currentHour < 21) {
-            Anecdote();
-        }
-        if ((currentHour >= 8 && currentMinutes >30) && currentHour < 17) {
-            metcast();
+            //Задаем временые промежутки когда будет запущена рассылка
+            Calendar cal = Calendar.getInstance();
+            int currentHour = cal.get(Calendar.HOUR_OF_DAY);
+            int currentMinutes = cal.get(Calendar.MINUTE);
+
+            if (currentHour >= 9 && currentHour < 18) Horoscope();
+            if (currentHour >= 9 && currentHour < 20) Rate();
+            if (currentHour >= 13 && currentHour < 21) Anecdote();
+            if ((currentHour >= 8 && currentMinutes > 30) && currentHour < 17) metcast();
+
+            mDBConnection.setSettings("ServiceSend","0");
         }
     }
     private void metcast() {
@@ -162,7 +160,11 @@ public class ServiceSendTask implements Runnable {
             }
         } catch (SmppTimeoutException | SmppChannelException
                 | UnrecoverablePduException | InterruptedException | RecoverablePduException ex) {
-            log.debug("{}", ex);
+
+            //фиксируем сбой отправки
+            sml.setStatus(-1);
+            mDBConnection.UpdateSMSLine(sml);
+            log.debug("System's error, sending failure ", ex);
         }
     }
 }

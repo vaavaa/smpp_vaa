@@ -43,7 +43,6 @@ public class Client implements Runnable {
     protected long elinkPeriod = 5;
 
     protected MyDBConnection mDBConnection;
-    protected boolean HiddenRunFlag = true;
 
     public Client(SmppSessionConfiguration cfg, MyDBConnection mDBCon) {
         this.cfg = cfg;
@@ -88,7 +87,7 @@ public class Client implements Runnable {
 
     //Устанавливаем переодичное задание на выполнение
     public void runMessageSendTask() {
-        this.messageTask = this.timer.scheduleAtFixedRate(new MessageSendTask(this, mDBConnection), 0, 10, TimeUnit.SECONDS);
+        this.messageTask = this.timer.scheduleAtFixedRate(new MessageSendTask(this, mDBConnection), 0, 20, TimeUnit.SECONDS);
     }
 
     //Устанавливаем переодичное задание на выполнение повисшие сессии переходят в сообщения

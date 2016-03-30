@@ -63,6 +63,8 @@ public class Main {
                 //Вышли
                 return false;
             case "start":
+                mDBConnection.setSettings("ServiceSend","0");
+                mDBConnection.setSettings("HiddenServiceSend","0");
                 start_3200();
                 log.debug("Started");
                 return true;

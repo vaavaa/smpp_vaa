@@ -111,10 +111,9 @@ public class MyDBConnection {
 
     public String getSettings(String settingsName) {
         String settingsValue = null;
-        MyDBConnection mDBConnection = new MyDBConnection();
         try {
             String SQL_string = "SELECT value FROM smpp_settings WHERE name='" + settingsName + "'";
-            ResultSet rs = mDBConnection.query(SQL_string);
+            ResultSet rs = query(SQL_string);
             if (rs.next()) {
                 settingsValue = rs.getString("value");
             }
@@ -124,6 +123,15 @@ public class MyDBConnection {
         }
 
         return settingsValue;
+    }
+    public void setSettings(String settingsName, String value) {
+        String settingsValue = null;
+        try {
+            String SQL_string = "Update smpp_settings SET value = '" + value + "' WHERE name='" + settingsName + "'";
+            Update(SQL_string);
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
     }
 
     public int getLastId() throws SQLException {

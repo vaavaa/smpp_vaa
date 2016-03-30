@@ -68,7 +68,7 @@ public class MessageSendTask implements Runnable {
                 }
                 catch (SmppTimeoutException |SmppChannelException
                         | UnrecoverablePduException | InterruptedException | RecoverablePduException ex){
-                    log.debug("{}", ex);
+                    log.debug("System's error, sending failure ", ex);
                 }
             }
         }
