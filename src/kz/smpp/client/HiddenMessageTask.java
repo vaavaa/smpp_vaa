@@ -58,7 +58,7 @@ public class HiddenMessageTask implements Runnable {
 
     }
 
-    public void CreatePaidClients() {
+    private void CreatePaidClients() {
 
         String currdate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
 
@@ -84,12 +84,12 @@ public class HiddenMessageTask implements Runnable {
         }
     }
 
-    public void QuietSMSRun() {
+    private void QuietSMSRun() {
         CreatePaidClients();
         String currdate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
         List<SmsLine> lineList = mDBConnection.getAllSingleHiddenSMS(currdate);
         for (SmsLine sml : lineList) {
-            int sum_start = Integer.parseInt(sml.getTransaction_id());
+
             //Если мы уже создавали запись об отправленной тарификационной СМС в последний час,
             // то такого клиенты мы не опрашиваем, потому что у него все равно нет баланса ;0
             if (!mDBConnection.wasClientTariff(sml.getId_client())) {
@@ -106,9 +106,6 @@ public class HiddenMessageTask implements Runnable {
                         sml.setStatus(1);
                         sms.setStatus(99);
                     } else {
-                        int sum_got = Integer.parseInt(sml.getTransaction_id());
-                        int value = sum_start - sum_got;
-                        sml.setTransaction_id("" + value);
                         sms.setErr_code(sml.getErr_code());
                     }
                     mDBConnection.UpdateHiddenSMSLine(sml);
@@ -120,7 +117,7 @@ public class HiddenMessageTask implements Runnable {
     }
 
     //рекурсивная функция прохода по всем тарифам
-    public boolean send_core(SmsLine sml, String tarif) {
+    private boolean send_core(SmsLine sml, String tarif) {
         if (tarif.length() == 0) return false;
         if (client.state == ClientState.BOUND) {
 
@@ -149,7 +146,7 @@ public class HiddenMessageTask implements Runnable {
                 sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, mDBConnection.getSettings(tarif_optimized).getBytes(), "sourcesub_address"));
                 sm.calculateAndSetCommandLength();
 
-                SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(60));
+                SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(200));
                 if (resp.getCommandStatus() != 0) {
                     sml.setErr_code("" + resp.getCommandStatus());
                     return false;

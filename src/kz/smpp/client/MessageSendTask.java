@@ -34,7 +34,6 @@ public class MessageSendTask implements Runnable {
             List<SmsLine> SMs= mDBConnection.getSMSLine(0);
             for (SmsLine single_sm: SMs) {
                 try{
-                    log.debug("Send SM");
                     int SequenceNumber = 1 + (int)(Math.random() * 32000);
                     String client_msisdn =Long.toString(mDBConnection.getClient(single_sm.getId_client()).getAddrs());
 
@@ -54,8 +53,8 @@ public class MessageSendTask implements Runnable {
                     sm.setOptionalParameter(new Tlv(SmppConstants.TAG_MESSAGE_PAYLOAD, textBytes,"messagePayload"));
                     sm.calculateAndSetCommandLength();
 
-                    SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(60));
-                    log.debug("SM sent" + sm.toString());
+                    log.debug("Send SM");
+                    SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(200));
 
                     if (resp.getCommandStatus()!=0){
                         single_sm.setErr_code(Integer.toString(resp.getCommandStatus()));

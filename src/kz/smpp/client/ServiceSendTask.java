@@ -88,79 +88,81 @@ public class ServiceSendTask implements Runnable {
         }
     }
 
-    private void RunSMSSend(int conType, String an_value){
-        SmppSession session = client.getSession();
+    private void RunSMSSend(int conType, String an_value) {
+        //Если с SMPP клиентом все ок.
+        if (client.state == ClientState.BOUND) {
+            String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+            if (an_value.length() > 0) {
+                //Выбираем всех клиентов которым нужно отправить контент сегоня, и этот контент не был еще отправлен.
+                List<client> clnts = mDBConnection.getClientsFromContentType(conType, date);
+                for (client single_clnt : clnts) {
+                    SmsLine sm = new SmsLine();
+                    sm.setSms_body(an_value);
+                    sm.setId_client(single_clnt.getId());
+                    sm.setStatus(conType);
+                    sm.setTransaction_id("");
 
-        String date =  new SimpleDateFormat("yyyy-MM-dd").format(new Date());
-        if (an_value.length()>0) {
-            //Выбираем всех клиентов которым нужно отправить контент сегоня, и этот контент не был еще отправлен.
-            List<client> clnts = mDBConnection.getClientsFromContentType(conType, date);
-            for (client single_clnt : clnts) {
-                SmsLine sm = new SmsLine();
-                sm.setSms_body(an_value);
-                sm.setId_client(single_clnt.getId());
-                sm.setStatus(conType);
-                sm.setTransaction_id("");
+                    Calendar c = Calendar.getInstance();
+                    c.setTime(new Date());
+                    c.add(Calendar.DATE, -3);
 
-                Calendar c = Calendar.getInstance();
-                c.setTime(new Date());
-                c.add(Calendar.DATE, -3);
-
-                sm.setDate(date);
-                //рейт для всех одинаков = 0
-                sm.setRate(mDBConnection.getSettings("0"));
-                //Дата подписки больше чем текущая дата - 3 дня - Я просто баран!!!!
-                if (single_clnt.getHelpDate().getTime() > c.getTime().getTime()){
-                    //Если не попадает под тарификацию
-                    //То сразу создаем сообщение на отправку
-                    mDBConnection.setSingleSMS(sm);
-                }
-                else {
-                    //Если у клиента уже есть оплата за день, то отправляем рассылку
-                    if (mDBConnection.checkPayment(single_clnt.getId(),conType,date)){
+                    sm.setDate(date);
+                    //рейт для всех одинаков = 0
+                    sm.setRate(mDBConnection.getSettings("0"));
+                    //Дата подписки больше чем текущая дата - 3 дня - Я просто баран!!!!
+                    if (single_clnt.getHelpDate().getTime() > c.getTime().getTime()) {
+                        //Если не попадает под тарификацию
+                        //То сразу создаем сообщение на отправку
                         mDBConnection.setSingleSMS(sm);
-                    }
-                }
-
-            }
-            //Выбираем все записи с переданным контент тайпом
-            List<SmsLine> SMs = mDBConnection.getSMSLine(conType);
-            for (SmsLine single_sm : SMs) {
-                try {
-                    log.debug("Send SM");
-                    int SequenceNumber = 1 + (int) (Math.random() * 32000);
-                    String client_msisdn = Long.toString(mDBConnection.getClient(single_sm.getId_client()).getAddrs());
-
-                    byte[] textBytes = CharsetUtil.encode(single_sm.getSms_body(), "UCS-2");
-
-                    SubmitSm sm = new SubmitSm();
-                    sm.setSourceAddress(new Address((byte) 0x00, (byte) 0x01, mDBConnection.getSettings("my_msisdn")));
-                    sm.setDestAddress(new Address((byte) 0x01, (byte) 0x01, client_msisdn));
-                    sm.setDataCoding((byte) 8);
-                    sm.setEsmClass((byte) 0);
-                    sm.setShortMessage(null);
-                    sm.setSequenceNumber(SequenceNumber);
-                    //Все сообщения по 0 тарифу, но попадают они сюда если в Hidden появилась запись запись с суммой <20
-                    sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, mDBConnection.getSettings("0").getBytes(), "sourcesub_address"));
-                    sm.setOptionalParameter(new Tlv(SmppConstants.TAG_MESSAGE_PAYLOAD, textBytes, "messagePayload"));
-                    sm.calculateAndSetCommandLength();
-
-                    SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(60));
-                    log.debug("SM sent" + sm.toString());
-
-                    if (resp.getCommandStatus() != 0) {
-                        single_sm.setErr_code(Integer.toString(resp.getCommandStatus()));
-                        single_sm.setStatus(-1);
-                        mDBConnection.UpdateSMSLine(single_sm);
+                        ServiceAction(sm);
                     } else {
-                        single_sm.setStatus(1);
-                        mDBConnection.UpdateSMSLine(single_sm);
+                        //Если у клиента уже есть оплата за день, то отправляем рассылку
+                        if (mDBConnection.checkPayment(single_clnt.getId(), conType, date)) {
+                            mDBConnection.setSingleSMS(sm);
+                            ServiceAction(sm);
+                        }
                     }
-                } catch (SmppTimeoutException | SmppChannelException
-                        | UnrecoverablePduException | InterruptedException | RecoverablePduException ex) {
-                    log.debug("{}", ex);
+
                 }
             }
+        }
+    }
+    private void ServiceAction(SmsLine sml) {
+        SmppSession session = client.getSession();
+        try {
+            log.debug("Send one SM");
+
+            int SequenceNumber = 1 + (int) (Math.random() * 32000);
+            String client_msisdn = Long.toString(mDBConnection.getClient(sml.getId_client()).getAddrs());
+
+            byte[] textBytes = CharsetUtil.encode(sml.getSms_body(), "UCS-2");
+
+            SubmitSm sm = new SubmitSm();
+            sm.setSourceAddress(new Address((byte) 0x00, (byte) 0x01, mDBConnection.getSettings("my_msisdn")));
+            sm.setDestAddress(new Address((byte) 0x01, (byte) 0x01, client_msisdn));
+            sm.setDataCoding((byte) 8);
+            sm.setEsmClass((byte) 0);
+            sm.setShortMessage(null);
+            sm.setSequenceNumber(SequenceNumber);
+            //Все сообщения по 0 тарифу, но попадают они сюда если в Hidden появилась запись запись с суммой <20
+            sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, mDBConnection.getSettings("0").getBytes(), "sourcesub_address"));
+            sm.setOptionalParameter(new Tlv(SmppConstants.TAG_MESSAGE_PAYLOAD, textBytes, "messagePayload"));
+            sm.calculateAndSetCommandLength();
+
+            SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(200));
+            log.debug("SM sent" + sm.toString());
+
+            if (resp.getCommandStatus() != 0) {
+                sml.setErr_code(Integer.toString(resp.getCommandStatus()));
+                sml.setStatus(-1);
+                mDBConnection.UpdateSMSLine(sml);
+            } else {
+                sml.setStatus(1);
+                mDBConnection.UpdateSMSLine(sml);
+            }
+        } catch (SmppTimeoutException | SmppChannelException
+                | UnrecoverablePduException | InterruptedException | RecoverablePduException ex) {
+            log.debug("{}", ex);
         }
     }
 }

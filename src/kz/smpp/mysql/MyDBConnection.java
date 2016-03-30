@@ -515,7 +515,6 @@ public class MyDBConnection {
 
     public boolean getFollowUpLine() {
         boolean result = false;
-        AllUtils settings = new AllUtils();
         String sql_string = "INSERT INTO sms_line(id_client, sms_body, status)" +
                 " SELECT client_session_140.id_client, '" + this.getSettings("welcome_message_fail_session") + "', '0' FROM client_session_140 " +
                 "WHERE now()>  DATE_ADD(client_session_140.time, INTERVAL 120 SECOND)";
