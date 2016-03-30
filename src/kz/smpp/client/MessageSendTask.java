@@ -69,6 +69,8 @@ public class MessageSendTask implements Runnable {
                 catch (SmppTimeoutException |SmppChannelException
                         | UnrecoverablePduException | InterruptedException | RecoverablePduException ex){
                     log.debug("System's error, sending failure ", ex);
+                    single_sm.setStatus(-1);
+                    mDBConnection.UpdateSMSLine(single_sm);
                 }
             }
         }
