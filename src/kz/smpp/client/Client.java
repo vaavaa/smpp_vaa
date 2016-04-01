@@ -42,6 +42,10 @@ public class Client implements Runnable {
     protected long rebindPeriod = 5;
     protected long elinkPeriod = 5;
 
+    protected boolean HiddenMessageTask = false;
+    protected boolean MessageSendTask = false;
+    protected boolean ServiceSendTask = false;
+
     protected MyDBConnection mDBConnection;
 
     public Client(SmppSessionConfiguration cfg, MyDBConnection mDBCon) {

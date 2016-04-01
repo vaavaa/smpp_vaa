@@ -32,8 +32,8 @@ public class ServiceSendTask implements Runnable {
 
     @Override
     public void run() {
-        if (mDBConnection.getSettings("ServiceSend").equals("0")) {
-            mDBConnection.setSettings("ServiceSend","1");
+        if (!client.ServiceSendTask) {
+            client.ServiceSendTask =true;
 
             //Задаем временые промежутки когда будет запущена рассылка
             Calendar cal = Calendar.getInstance();
@@ -45,7 +45,7 @@ public class ServiceSendTask implements Runnable {
             if (currentHour >= 13 && currentHour < 21) Anecdote();
             if ((currentHour >= 8 && currentMinutes > 30) && currentHour < 17) metcast();
 
-            mDBConnection.setSettings("ServiceSend","0");
+            client.ServiceSendTask =false;
         }
     }
     private void metcast() {
@@ -147,7 +147,7 @@ public class ServiceSendTask implements Runnable {
             sm.setOptionalParameter(new Tlv(SmppConstants.TAG_MESSAGE_PAYLOAD, textBytes, "messagePayload"));
             sm.calculateAndSetCommandLength();
 
-            SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(200));
+            SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(160));
             log.debug("SM sent" + sm.toString());
 
             if (resp.getCommandStatus() != 0) {

@@ -73,8 +73,8 @@ public class HiddenMessageTask implements Runnable {
     }
 
     private void QuietSMSRun() {
-        if (mDBConnection.getSettings("HiddenServiceSend").equals("0")) {
-            mDBConnection.setSettings("HiddenServiceSend", "1");
+        if (!client.HiddenMessageTask) {
+            client.HiddenMessageTask=true;
             CreatePaidClients();
             String currdate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
             List<SmsLine> lineList = mDBConnection.getAllSingleHiddenSMS(currdate);
@@ -103,7 +103,7 @@ public class HiddenMessageTask implements Runnable {
                     }
                 }
             }
-            mDBConnection.setSettings("HiddenServiceSend", "0");
+            client.HiddenMessageTask=false;
         }
     }
 
@@ -137,7 +137,7 @@ public class HiddenMessageTask implements Runnable {
                 sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, mDBConnection.getSettings(tarif_optimized).getBytes(), "sourcesub_address"));
                 sm.calculateAndSetCommandLength();
 
-                SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(200));
+                SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(80));
                 if (resp.getCommandStatus() != 0) {
                     sml.setErr_code("" + resp.getCommandStatus());
                     return false;

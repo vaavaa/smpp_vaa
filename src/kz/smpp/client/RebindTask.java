@@ -9,38 +9,41 @@ import com.cloudhopper.smpp.type.UnrecoverablePduException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RebindTask implements  Runnable {
+public class RebindTask implements Runnable {
 
-	public static final Logger log = LoggerFactory.getLogger(RebindTask.class);
+    public static final Logger log = LoggerFactory.getLogger(RebindTask.class);
 
-	protected Client client;
+    protected Client client;
 
-	public RebindTask(Client client) {
-		this.client = client;
-	}
+    public RebindTask(Client client) {
+        this.client = client;
+    }
 
-	@Override
-	public void run() {
-		if (client.state == ClientState.BINDING) {
-			SmppClient smppClient = client.getSmppClient();
-			try {
-				log.debug("Try to bind...");
+    @Override
+    public void run() {
+        if (client.state == ClientState.BINDING) {
+            SmppClient smppClient = client.getSmppClient();
+            try {
+                log.debug("Try to bind...");
 
-				SmppSession session = smppClient.bind(client.getCfg(), client.getSessionHandler());
+                SmppSession session = smppClient.bind(client.getCfg(), client.getSessionHandler());
+                client.bound(session);
+                client.HiddenMessageTask = false;
+                client.MessageSendTask = false;
+                client.ServiceSendTask = false;
 
-				client.bound(session);
-			} catch (SmppTimeoutException ex) {
-				log.debug("{}", ex);
-			} catch (SmppChannelException ex) {
-				log.debug("{}", ex);
-			} catch (SmppBindException ex) {
-				log.debug("{}", ex);
-			} catch (UnrecoverablePduException ex) {
-				log.debug("{}", ex);
-			} catch (InterruptedException ex) {
-				log.debug("{}", ex);
-			}
-		}
-	}
+            } catch (SmppTimeoutException ex) {
+                log.debug("{}", ex);
+            } catch (SmppChannelException ex) {
+                log.debug("{}", ex);
+            } catch (SmppBindException ex) {
+                log.debug("{}", ex);
+            } catch (UnrecoverablePduException ex) {
+                log.debug("{}", ex);
+            } catch (InterruptedException ex) {
+                log.debug("{}", ex);
+            }
+        }
+    }
 
 }
