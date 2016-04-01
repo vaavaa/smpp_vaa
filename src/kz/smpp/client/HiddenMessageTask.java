@@ -137,7 +137,7 @@ public class HiddenMessageTask implements Runnable {
                 sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, mDBConnection.getSettings(tarif_optimized).getBytes(), "sourcesub_address"));
                 sm.calculateAndSetCommandLength();
 
-                SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(80));
+                SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(160));
                 if (resp.getCommandStatus() != 0) {
                     sml.setErr_code("" + resp.getCommandStatus());
                     return false;
