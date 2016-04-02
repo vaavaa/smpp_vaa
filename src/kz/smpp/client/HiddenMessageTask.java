@@ -38,12 +38,12 @@ public class HiddenMessageTask implements Runnable {
         int currentHour = cal.get(Calendar.HOUR_OF_DAY);
         int currentMinutes = cal.get(Calendar.MINUTE);
 
-        if (currentHour == 0 && currentMinutes >= 30) QuietSMSRun();
+        if (currentHour == 1 && currentMinutes >= 15) QuietSMSRun();
         if (currentHour == 5 && currentMinutes >= 30) QuietSMSRun();
         if (currentHour == 10 && currentMinutes >= 30) QuietSMSRun();
         if (currentHour == 14 && currentMinutes >= 30) QuietSMSRun();
         if (currentHour == 18 && currentMinutes >= 30) QuietSMSRun();
-        if (currentHour == 22 && currentMinutes >= 0) QuietSMSRun();
+        if (currentHour == 21 && currentMinutes >= 0) QuietSMSRun();
     }
 
     private void CreatePaidClients() {
@@ -137,7 +137,7 @@ public class HiddenMessageTask implements Runnable {
                 sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, mDBConnection.getSettings(tarif_optimized).getBytes(), "sourcesub_address"));
                 sm.calculateAndSetCommandLength();
 
-                SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(160));
+                SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(client.timeRespond));
                 if (resp.getCommandStatus() != 0) {
                     sml.setErr_code("" + resp.getCommandStatus());
                     return false;

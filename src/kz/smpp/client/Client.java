@@ -46,6 +46,10 @@ public class Client implements Runnable {
     protected boolean MessageSendTask = false;
     protected boolean ServiceSendTask = false;
 
+    protected int timeRespond = 400;
+    protected int ErrorsCount = 10;
+
+
     protected MyDBConnection mDBConnection;
 
     public Client(SmppSessionConfiguration cfg, MyDBConnection mDBCon) {

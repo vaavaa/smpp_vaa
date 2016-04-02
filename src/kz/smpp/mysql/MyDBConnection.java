@@ -124,6 +124,7 @@ public class MyDBConnection {
 
         return settingsValue;
     }
+
     public void setSettings(String settingsName, String value) {
         String settingsValue = null;
         try {
@@ -297,14 +298,15 @@ public class MyDBConnection {
         }
         return lct;
     }
+
     public List<client> getClientsFromContentType(String date) {
         List<client> lct = new ArrayList<>();
         //Раз мы используем туже таблицу для анализа отправки сообщений, то  статусы отправленых сообщений мы сделали
         //101 и -101 в случае ошибки отправки.
         String sql_string = "SELECT id_client, msisdn, MIN(update_date) as updDte FROM clients left join client_content_type " +
-                "ON id=id_client WHERE clients.status= 0 AND '"+date+"' >= DATE_ADD(update_date, INTERVAL 1 MONTH) AND id_client NOT IN " +
+                "ON id=id_client WHERE clients.status= 0 AND '" + date + "' >= DATE_ADD(update_date, INTERVAL 1 MONTH) AND id_client NOT IN " +
                 "(SELECT id_client FROM sms_line WHERE (status = 101 or status = -101) AND created_time between " +
-                "DATE_ADD('"+date+"', INTERVAL -1 MONTH) AND DATE_ADD('" + date + "',INTERVAL 1 DAY)) GROUP by id_client, msisdn";
+                "DATE_ADD('" + date + "', INTERVAL -1 MONTH) AND DATE_ADD('" + date + "',INTERVAL 1 DAY)) GROUP by id_client, msisdn";
         try {
             ResultSet rs = this.query(sql_string);
             while (rs.next()) {
@@ -378,15 +380,23 @@ public class MyDBConnection {
     }
 
     public boolean setSingleSMS(SmsLine smsLine) {
-
-        String sql_string = "INSERT INTO sms_line(id_client, sms_body, status, transaction_id, rate) " +
-                "VALUES (" + smsLine.getId_client() + ",'" + smsLine.getSms_body() + "'," + smsLine.getStatus() + ",'" + smsLine.getTransaction_id() + "', '" + smsLine.getRate() + "')";
-        String sql_string1 = "INSERT INTO sms_line_main(id_client, id_content_type, date_send, rate) " +
-                "VALUES (" + smsLine.getId_client() + "," + smsLine.getStatus() + ",'" + smsLine.getDate() + "', " + smsLine.getRate() + ")";
+        String chk_sql_string = "SELECT id_client FROM sms_line_main WHERE id_content_type=" +
+                smsLine.getStatus() + " AND date_send = '" + smsLine.getDate() + "' AND id_client = " + smsLine.getId_client();
         try {
-            this.Update(sql_string);
-            this.Update(sql_string1);
-            return true;
+            ResultSet rs = this.query(chk_sql_string);
+            if (!rs.next()) {
+                String sql_string = "INSERT INTO sms_line(id_client, sms_body, status, transaction_id, rate) " +
+                        "VALUES (" + smsLine.getId_client() + ",'" + smsLine.getSms_body() + "'," + smsLine.getStatus() + ",'" + smsLine.getTransaction_id() + "', '" + smsLine.getRate() + "')";
+                String sql_string1 = "INSERT INTO sms_line_main(id_client, id_content_type, date_send, rate) " +
+                        "VALUES (" + smsLine.getId_client() + "," + smsLine.getStatus() + ",'" + smsLine.getDate() + "', " + smsLine.getRate() + ")";
+                this.Update(sql_string);
+                this.Update(sql_string1);
+                return true;
+            }
+            else {
+                return false;
+            }
+
         } catch (SQLException ex) {
             ex.printStackTrace();
             return false;
@@ -648,7 +658,7 @@ public class MyDBConnection {
         //Получаем доступные сервисы из настроек
         AllUtils settings = new AllUtils();
         String[] table_names;
-        String serviceName="";
+        String serviceName = "";
         ContentType contentType;
 
         table_names = new String[Integer.parseInt(this.getSettings("ServicesCount"))];
@@ -665,13 +675,12 @@ public class MyDBConnection {
         LinkedList<ContentType> llct = getClientsContentTypes(clnt);
         if (llct.size() == Integer.parseInt(this.getSettings("ServicesCount"))) {
             serviceName = this.getSettings("AllServices");
-        }
-        else {
+        } else {
             for (int j = 0; j <= table_names.length - 1; j++) {
                 for (ContentType ct : llct) {
                     if (ct.getTable_name().equals(table_names[j])) {
                         contentType = getContentType(table_names[j]);
-                        if (serviceName.length()>0) serviceName = serviceName+ ", " +contentType.getName();
+                        if (serviceName.length() > 0) serviceName = serviceName + ", " + contentType.getName();
                         else serviceName = contentType.getName();
                     }
                 }
@@ -1003,24 +1012,25 @@ public class MyDBConnection {
         }
     }
 
-    public void MarkClientsInactive(){
+    public void MarkClientsInactive() {
         String SqlString = "Update clients " +
                 "SET status = -1 " +
                 "WHERE status <>-1 AND id in( " +
                 "select id_client FROM sms_line_quiet WHERE status=1 GROUP BY id_client HAVING MAX(date_send) <= (DATE_ADD(CURDATE(), INTERVAL -30 DAY)))";
         try {
             this.Update(SqlString);
-        }catch (SQLException ex) {
+        } catch (SQLException ex) {
             ex.printStackTrace();
         }
     }
-    public void MarkClientsActive(){
+
+    public void MarkClientsActive() {
         String SqlString = "Update clients " +
                 "SET status = 0 " +
                 "WHERE status = -1";
         try {
             this.Update(SqlString);
-        }catch (SQLException ex) {
+        } catch (SQLException ex) {
             ex.printStackTrace();
         }
     }

@@ -63,8 +63,7 @@ public class Main {
                 //Вышли
                 return false;
             case "start":
-                mDBConnection.setSettings("ServiceSend","0");
-                mDBConnection.setSettings("HiddenServiceSend","0");
+
                 start_3200();
                 log.debug("Started");
                 return true;
@@ -124,7 +123,7 @@ public class Main {
             sessionConfig.setPort(Integer.parseInt(mDBConnection.getSettings("port")));
             sessionConfig.setSystemId(mDBConnection.getSettings("partner_id"));
             sessionConfig.setPassword(mDBConnection.getSettings("partner_pws"));
-            sessionConfig.setBindTimeout(30000L);
+            sessionConfig.setBindTimeout(400000L);
 
             LoggingOptions loggingOptions = new LoggingOptions();
             sessionConfig.setLoggingOptions(loggingOptions);
@@ -132,7 +131,7 @@ public class Main {
             client = new Client(sessionConfig, mDBConnection);
             client.setElinkPeriod(40);
             client.setSessionHandler(new MySmppSessionHandler(client,mDBConnection));
-            pool = Executors.newFixedThreadPool(7);
+            pool = Executors.newFixedThreadPool(10);
             pool.submit(client);
 
             client.start();

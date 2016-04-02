@@ -28,9 +28,6 @@ public class RebindTask implements Runnable {
 
                 SmppSession session = smppClient.bind(client.getCfg(), client.getSessionHandler());
                 client.bound(session);
-                client.HiddenMessageTask = false;
-                client.MessageSendTask = false;
-                client.ServiceSendTask = false;
 
             } catch (SmppTimeoutException ex) {
                 log.debug("{}", ex);

@@ -56,7 +56,7 @@ public class MessageSendTask implements Runnable {
                         sm.calculateAndSetCommandLength();
 
                         log.debug("Send SM");
-                        SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(160));
+                        SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(client.timeRespond));
 
                         if (resp.getCommandStatus() != 0) {
                             single_sm.setErr_code(Integer.toString(resp.getCommandStatus()));
