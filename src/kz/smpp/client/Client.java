@@ -42,11 +42,7 @@ public class Client implements Runnable {
     protected long rebindPeriod = 5;
     protected long elinkPeriod = 5;
 
-    protected boolean HiddenMessageTask = false;
-    protected boolean MessageSendTask = false;
-    protected boolean ServiceSendTask = false;
-
-    protected int timeRespond = 400;
+    protected int timeRespond = 600;
     protected int ErrorsCount = 10;
 
 
@@ -95,12 +91,12 @@ public class Client implements Runnable {
 
     //Устанавливаем переодичное задание на выполнение
     public void runMessageSendTask() {
-        this.messageTask = this.timer.scheduleAtFixedRate(new MessageSendTask(this, mDBConnection), 0, 20, TimeUnit.SECONDS);
+        this.messageTask = this.timer.scheduleAtFixedRate(new MessageSendTask(this, mDBConnection), 0, 10, TimeUnit.SECONDS);
     }
 
     //Устанавливаем переодичное задание на выполнение повисшие сессии переходят в сообщения
     public void runDeadSessionTask() {
-        this.deadSessionTask = this.timer.scheduleAtFixedRate(new DeadSessionTask(mDBConnection), 0, 2, TimeUnit.MINUTES);
+        this.deadSessionTask = this.timer.scheduleAtFixedRate(new DeadSessionTask(mDBConnection), 0, 90, TimeUnit.SECONDS);
     }
 
     //Устанавливаем переодичное задание на выполнение пополнение контента
@@ -125,7 +121,7 @@ public class Client implements Runnable {
 
     //Устанавливаем переодичное задание на выполнение списания платы с абонентов.
     public void runInformMonthly() {
-        this.InfoTask = this.timer.scheduleAtFixedRate(new InfoTask(this, mDBConnection), 0, 3, TimeUnit.HOURS);
+        this.InfoTask = this.timer.scheduleAtFixedRate(new InfoTask(this, mDBConnection), 1, 3, TimeUnit.HOURS);
     }
 
     public void bind() {

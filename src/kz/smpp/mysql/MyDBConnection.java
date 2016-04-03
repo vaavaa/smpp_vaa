@@ -510,8 +510,9 @@ public class MyDBConnection {
 
     public List<SmsLine> getSMSLine(int line_status) {
         List<SmsLine> smsLines = new ArrayList<>();
+        String date =  new SimpleDateFormat("yyyy-MM-dd").format(new Date());
         String sql_string = "SELECT id_sms, id_client, sms_body, status, " +
-                "transaction_id, rate FROM sms_line WHERE status=" + line_status;
+                "transaction_id, rate FROM sms_line WHERE status=" + line_status + " AND created_time > '"+date+"'";
         try {
             ResultSet rs = this.query(sql_string);
             while (rs.next()) {
@@ -566,7 +567,7 @@ public class MyDBConnection {
                 " transaction_id='" + smsLine.getTransaction_id() + "', " +
                 " rate='" + smsLine.getRate() + "', " +
                 " err_code='" + smsLine.getErr_code() + "'" +
-                " WHERE id_sms=" + smsLine.getId_sms();
+                " WHERE id_sms=" + smsLine.getId_sms() + " LIMIT 1";
         try {
             this.Update(sql_string);
         } catch (SQLException ex) {

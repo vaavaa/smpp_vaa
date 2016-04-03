@@ -30,8 +30,6 @@ public class Main {
     private static void log(WindowFuture<Integer, PduRequest, PduResponse> future) {
         SubmitSm req = (SubmitSm) future.getRequest();
         SubmitSmResp resp = (SubmitSmResp) future.getResponse();
-
-        log.debug("Got response with MSG ID={} for APPID={}", resp.getMessageId(), req.getReferenceObject());
     }
 
     public static void main(String[] args) throws SmppInvalidArgumentException {
@@ -123,7 +121,7 @@ public class Main {
             sessionConfig.setPort(Integer.parseInt(mDBConnection.getSettings("port")));
             sessionConfig.setSystemId(mDBConnection.getSettings("partner_id"));
             sessionConfig.setPassword(mDBConnection.getSettings("partner_pws"));
-            sessionConfig.setBindTimeout(400000L);
+            sessionConfig.setBindTimeout(80000L);
 
             LoggingOptions loggingOptions = new LoggingOptions();
             sessionConfig.setLoggingOptions(loggingOptions);

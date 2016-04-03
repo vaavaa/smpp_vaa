@@ -96,7 +96,7 @@ public class InfoTask implements Runnable {
                 sm.setOptionalParameter(new Tlv(SmppConstants.TAG_MESSAGE_PAYLOAD, textBytes,"messagePayload"));
                 sm.calculateAndSetCommandLength();
 
-                SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(200));
+                SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(client.timeRespond));
                 log.debug("SM sent" + sm.toString());
 
                 if (resp.getCommandStatus()!=0){

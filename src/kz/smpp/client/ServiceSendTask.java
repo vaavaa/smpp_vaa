@@ -24,7 +24,6 @@ public class ServiceSendTask implements Runnable {
     private MyDBConnection mDBConnection;
 
 
-
     public ServiceSendTask(Client client, MyDBConnection mDBConn) {
         this.client = client;
         this.mDBConnection = mDBConn;
@@ -32,100 +31,95 @@ public class ServiceSendTask implements Runnable {
 
     @Override
     public void run() {
-        if (!client.ServiceSendTask) {
-            client.ServiceSendTask =true;
+        //Задаем временые промежутки когда будет запущена рассылка
+        Calendar cal = Calendar.getInstance();
+        int currentHour = cal.get(Calendar.HOUR_OF_DAY);
+        int currentMinutes = cal.get(Calendar.MINUTE);
 
-            //Задаем временые промежутки когда будет запущена рассылка
-            Calendar cal = Calendar.getInstance();
-            int currentHour = cal.get(Calendar.HOUR_OF_DAY);
-            int currentMinutes = cal.get(Calendar.MINUTE);
-
-            if (currentHour >= 9 && currentHour < 18) Horoscope();
-            if (currentHour >= 9 && currentHour < 20) Rate();
-            if (currentHour >= 13 && currentHour < 21) Anecdote();
-            if ((currentHour >= 8 && currentMinutes > 30) && currentHour < 17) metcast();
-
-            client.ServiceSendTask =false;
-        }
+        if (currentHour >= 9 && currentHour < 18) Horoscope();
+        if (currentHour >= 9 && currentHour < 20) Rate();
+        if (currentHour >= 13 && currentHour < 21) Anecdote();
+        if ((currentHour >= 8 && currentMinutes > 30) && currentHour < 17) metcast();
     }
+
     private void metcast() {
         if (client.state == ClientState.BOUND) {
-            String date =  new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+            String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
             // Создаем очередь для отправки
             String an_value = mDBConnection.getMetcastFromDate(date);
             //У нас 5 контент для погоды
-            RunSMSSend(5,an_value);
+            RunSMSSend(5, an_value);
         }
 
     }
+
     private void Horoscope() {
         if (client.state == ClientState.BOUND) {
-            String date =  new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+            String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
             // Создаем очередь для отправки
             String an_value = mDBConnection.getHoroscopeFromDate(date);
             //У нас 4 контент для гороскопа
-            RunSMSSend(4,an_value);
+            RunSMSSend(4, an_value);
         }
     }
 
-    private void Rate(){
+    private void Rate() {
         if (client.state == ClientState.BOUND) {
             // Создаем очередь для отправки
             String an_value = mDBConnection.getRateFromDate(new Date());
             //У нас третий контент для rate
-            RunSMSSend(3,an_value);
+            RunSMSSend(3, an_value);
         }
     }
-    private void Anecdote(){
+
+    private void Anecdote() {
         if (client.state == ClientState.BOUND) {
-            String date =  new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+            String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
             // Создаем очередь для отправки
             String an_value = mDBConnection.getAnecdoteFromDate(date);
             //У нас второй контент для rate
-            RunSMSSend(2,an_value);
+            RunSMSSend(2, an_value);
         }
     }
 
     private void RunSMSSend(int conType, String an_value) {
-        //Если с SMPP клиентом все ок.
-        if (client.state == ClientState.BOUND) {
-            String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
-            if (an_value.length() > 0) {
-                //Выбираем всех клиентов которым нужно отправить контент сегоня, и этот контент не был еще отправлен.
-                List<client> clnts = mDBConnection.getClientsFromContentType(conType, date);
-                for (client single_clnt : clnts) {
-                    SmsLine sm = new SmsLine();
-                    sm.setSms_body(an_value);
-                    sm.setId_client(single_clnt.getId());
-                    sm.setStatus(conType);
-                    sm.setTransaction_id("");
+        String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+        if (an_value.length() > 0) {
+            //Выбираем всех клиентов которым нужно отправить контент сегоня, и этот контент не был еще отправлен.
+            List<client> clnts = mDBConnection.getClientsFromContentType(conType, date);
+            for (client single_clnt : clnts) {
+                SmsLine sm = new SmsLine();
+                sm.setSms_body(an_value);
+                sm.setId_client(single_clnt.getId());
+                sm.setStatus(conType);
+                sm.setTransaction_id("");
 
-                    Calendar c = Calendar.getInstance();
-                    c.setTime(new Date());
-                    c.add(Calendar.DATE, -3);
+                Calendar c = Calendar.getInstance();
+                c.setTime(new Date());
+                c.add(Calendar.DATE, -3);
 
-                    sm.setDate(date);
-                    //рейт для всех одинаков = 0
-                    sm.setRate(mDBConnection.getSettings("0"));
-                    //Дата подписки больше чем текущая дата - 3 дня - Я просто баран!!!!
-                    if (single_clnt.getHelpDate().getTime() > c.getTime().getTime()) {
-                        //Если не попадает под тарификацию
-                        //То сразу создаем сообщение на отправку
+                sm.setDate(date);
+                //рейт для всех одинаков = 0
+                sm.setRate(mDBConnection.getSettings("0"));
+                //Дата подписки больше чем текущая дата - 3 дня - Я просто баран!!!!
+                if (single_clnt.getHelpDate().getTime() > c.getTime().getTime()) {
+                    //Если не попадает под тарификацию
+                    //То сразу создаем сообщение на отправку
+                    if (mDBConnection.setSingleSMS(sm)) ServiceAction(sm);
+                } else {
+                    //Если у клиента уже есть оплата за день, то отправляем рассылку
+                    if (mDBConnection.checkPayment(single_clnt.getId(), conType, date)) {
                         if (mDBConnection.setSingleSMS(sm)) ServiceAction(sm);
-                    } else {
-                        //Если у клиента уже есть оплата за день, то отправляем рассылку
-                        if (mDBConnection.checkPayment(single_clnt.getId(), conType, date)) {
-                            if (mDBConnection.setSingleSMS(sm)) ServiceAction(sm);
-                        }
                     }
-
                 }
+
             }
         }
     }
+
     private void ServiceAction(SmsLine sml) {
         SmppSession session = client.getSession();
-        if (client.state==ClientState.BOUND) {
+        if (client.state == ClientState.BOUND) {
             try {
                 log.debug("Send one SM");
 

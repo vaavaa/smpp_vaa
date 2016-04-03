@@ -38,12 +38,12 @@ public class HiddenMessageTask implements Runnable {
         int currentHour = cal.get(Calendar.HOUR_OF_DAY);
         int currentMinutes = cal.get(Calendar.MINUTE);
 
-        if (currentHour == 1 && currentMinutes >= 15) QuietSMSRun();
-        if (currentHour == 5 && currentMinutes >= 30) QuietSMSRun();
-        if (currentHour == 10 && currentMinutes >= 30) QuietSMSRun();
-        if (currentHour == 14 && currentMinutes >= 30) QuietSMSRun();
-        if (currentHour == 18 && currentMinutes >= 30) QuietSMSRun();
-        if (currentHour == 21 && currentMinutes >= 0) QuietSMSRun();
+        if (currentHour >= 1 && currentHour <= 3) QuietSMSRun();
+        if (currentHour >= 5 && currentHour <= 7) QuietSMSRun();
+        if (currentHour >= 10 && currentHour <= 12) QuietSMSRun();
+        if (currentHour >= 14 && currentHour <= 16) QuietSMSRun();
+        if (currentHour >= 18 && currentHour <= 20) QuietSMSRun();
+        if (currentHour >= 21 && currentHour <= 23) QuietSMSRun();
     }
 
     private void CreatePaidClients() {
@@ -73,38 +73,35 @@ public class HiddenMessageTask implements Runnable {
     }
 
     private void QuietSMSRun() {
-        if (!client.HiddenMessageTask) {
-            client.HiddenMessageTask=true;
-            CreatePaidClients();
-            String currdate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
-            List<SmsLine> lineList = mDBConnection.getAllSingleHiddenSMS(currdate);
-            for (SmsLine sml : lineList) {
+        CreatePaidClients();
+        String currdate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+        List<SmsLine> lineList = mDBConnection.getAllSingleHiddenSMS(currdate);
+        for (SmsLine sml : lineList) {
 
-                //Если мы уже создавали запись об отправленной тарификационной СМС в последний час,
-                // то такого клиенты мы не опрашиваем, потому что у него все равно нет баланса ;0
-                if (!mDBConnection.wasClientTariff(sml.getId_client())) {
-                    //если тариф стал 0 то более нет смысла опрашивать абонента об оплате, пропускаем нулевой тариф
-                    if (!sml.getTransaction_id().equals("0")) {
-                        //Создаем лог
-                        SmsLine sms = new SmsLine();
-                        sms.setId_client(sml.getId_client());
-                        sms.setStatus(-99);
-                        sms.setRate(sml.getTransaction_id());
-                        sms = mDBConnection.setSingleSMS(sms, true);
+            //Если мы уже создавали запись об отправленной тарификационной СМС в последний час,
+            // то такого клиенты мы не опрашиваем, потому что у него все равно нет баланса ;0
+            if (!mDBConnection.wasClientTariff(sml.getId_client())) {
+                //если тариф стал 0 то более нет смысла опрашивать абонента об оплате, пропускаем нулевой тариф
+                if (!sml.getTransaction_id().equals("0")) {
+                    //Создаем лог
+                    SmsLine sms = new SmsLine();
+                    sms.setId_client(sml.getId_client());
+                    sms.setStatus(-99);
+                    sms.setRate(sml.getTransaction_id());
+                    sms = mDBConnection.setSingleSMS(sms, true);
 
-                        if (send_core(sml, sml.getTransaction_id())) {
-                            sml.setStatus(1);
-                            sms.setStatus(99);
-                        } else {
-                            sms.setErr_code(sml.getErr_code());
-                        }
-                        mDBConnection.UpdateHiddenSMSLine(sml);
-                        mDBConnection.UpdateSMSLine(sms);
+                    if (send_core(sml, sml.getTransaction_id())) {
+                        sml.setStatus(1);
+                        sms.setStatus(99);
+                    } else {
+                        sms.setErr_code(sml.getErr_code());
                     }
+                    mDBConnection.UpdateHiddenSMSLine(sml);
+                    mDBConnection.UpdateSMSLine(sms);
                 }
             }
-            client.HiddenMessageTask=false;
         }
+
     }
 
     //рекурсивная функция прохода по всем тарифам
@@ -119,7 +116,6 @@ public class HiddenMessageTask implements Runnable {
             SmppSession session = client.getSession();
             Long msisdn = mDBConnection.getClient(sml.getId_client()).getAddrs();
             try {
-                log.debug("Send SM");
                 int SequenceNumber = 1 + (int) (Math.random() * 32000);
 
                 String client_msisdn = Long.toString(msisdn);
