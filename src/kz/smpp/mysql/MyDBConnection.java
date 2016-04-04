@@ -25,6 +25,7 @@ public class MyDBConnection {
 
     private static Connection myConnection;
     private Statement statement;
+    private PreparedStatement preparedStatement;
     public static final org.slf4j.Logger log = LoggerFactory.getLogger(MyDBConnection.class);
 
     public MyDBConnection() {
@@ -39,6 +40,7 @@ public class MyDBConnection {
             myConnection = DriverManager.getConnection(
                     "jdbc:mysql://127.0.0.1/smpp_clients?characterEncoding=utf8", "root", ""
             );
+            myConnection.setAutoCommit(false);
         } catch (Exception e) {
             System.out.println("Failed to get connection");
             e.printStackTrace();
@@ -104,8 +106,10 @@ public class MyDBConnection {
      * @desc Method to insert data to a table
      */
     public int Update(String insertQuery) throws SQLException {
-        statement = myConnection.createStatement();
-        int result = statement.executeUpdate(insertQuery);
+        preparedStatement = myConnection.prepareStatement(insertQuery);
+        int result = preparedStatement.executeUpdate();
+        myConnection.commit();
+        preparedStatement.close();
         return result;
     }
 
@@ -379,7 +383,8 @@ public class MyDBConnection {
         }
     }
 
-    public boolean setSingleSMS(SmsLine smsLine) {
+    public int setSingleSMS(SmsLine smsLine) {
+        int ireturn = -1;
         String chk_sql_string = "SELECT id_client FROM sms_line_main WHERE id_content_type=" +
                 smsLine.getStatus() + " AND date_send = '" + smsLine.getDate() + "' AND id_client = " + smsLine.getId_client();
         try {
@@ -390,16 +395,18 @@ public class MyDBConnection {
                 String sql_string1 = "INSERT INTO sms_line_main(id_client, id_content_type, date_send, rate) " +
                         "VALUES (" + smsLine.getId_client() + "," + smsLine.getStatus() + ",'" + smsLine.getDate() + "', " + smsLine.getRate() + ")";
                 this.Update(sql_string);
+                ireturn = getLastId();
+
                 this.Update(sql_string1);
-                return true;
+                return ireturn;
             }
             else {
-                return false;
+                return ireturn;
             }
 
         } catch (SQLException ex) {
             ex.printStackTrace();
-            return false;
+            return ireturn;
         }
     }
 

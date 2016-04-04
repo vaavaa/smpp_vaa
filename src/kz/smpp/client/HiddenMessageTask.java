@@ -38,12 +38,12 @@ public class HiddenMessageTask implements Runnable {
         int currentHour = cal.get(Calendar.HOUR_OF_DAY);
         int currentMinutes = cal.get(Calendar.MINUTE);
 
-        if (currentHour >= 1 && currentHour <= 3) QuietSMSRun();
-        if (currentHour >= 5 && currentHour <= 7) QuietSMSRun();
-        if (currentHour >= 10 && currentHour <= 12) QuietSMSRun();
-        if (currentHour >= 14 && currentHour <= 16) QuietSMSRun();
-        if (currentHour >= 18 && currentHour <= 20) QuietSMSRun();
-        if (currentHour >= 21 && currentHour <= 23) QuietSMSRun();
+        if (currentHour >= 1 && currentHour < 3) QuietSMSRun();
+        if (currentHour >= 5 && currentHour < 7) QuietSMSRun();
+        if (currentHour >= 10 && currentHour < 12) QuietSMSRun();
+        if (currentHour >= 14 && currentHour < 16) QuietSMSRun();
+        if (currentHour >= 18 && currentHour < 20) QuietSMSRun();
+        if (currentHour >= 21 && currentHour < 23) QuietSMSRun();
     }
 
     private void CreatePaidClients() {

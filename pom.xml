@@ -22,7 +22,7 @@
 		<mcp.source.version>1.7</mcp.source.version>
 		<mcp.target.version>1.7</mcp.target.version>
 
-        <mysql.version>5.1.6</mysql.version>
+        <mysql.version>5.1.38</mysql.version>
         <org.jsoup>1.8.3</org.jsoup>
 
         <org.ini4j>0.5.1</org.ini4j>

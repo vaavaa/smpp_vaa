@@ -105,11 +105,19 @@ public class ServiceSendTask implements Runnable {
                 if (single_clnt.getHelpDate().getTime() > c.getTime().getTime()) {
                     //Если не попадает под тарификацию
                     //То сразу создаем сообщение на отправку
-                    if (mDBConnection.setSingleSMS(sm)) ServiceAction(sm);
+                    int ireturn  = mDBConnection.setSingleSMS(sm);
+                    if (ireturn > 0){
+                        sm.setId_sms(ireturn);
+                        ServiceAction(sm);
+                    }
                 } else {
                     //Если у клиента уже есть оплата за день, то отправляем рассылку
                     if (mDBConnection.checkPayment(single_clnt.getId(), conType, date)) {
-                        if (mDBConnection.setSingleSMS(sm)) ServiceAction(sm);
+                        int ireturn  = mDBConnection.setSingleSMS(sm);
+                        if (ireturn > 0){
+                            sm.setId_sms(ireturn);
+                            ServiceAction(sm);
+                        }
                     }
                 }
 
@@ -153,10 +161,9 @@ public class ServiceSendTask implements Runnable {
                 }
             } catch (SmppTimeoutException | SmppChannelException
                     | UnrecoverablePduException | InterruptedException | RecoverablePduException ex) {
-
                 //фиксируем сбой отправки
-                sml.setStatus(-1);
-                mDBConnection.UpdateSMSLine(sml);
+                 sml.setStatus(-1);
+                 mDBConnection.UpdateSMSLine(sml);
                 log.debug("System's error, sending failure ", ex);
             }
         }
