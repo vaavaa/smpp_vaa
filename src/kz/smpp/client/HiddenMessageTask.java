@@ -74,34 +74,35 @@ public class HiddenMessageTask implements Runnable {
 
     private void QuietSMSRun() {
         CreatePaidClients();
-        String currdate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
-        List<SmsLine> lineList = mDBConnection.getAllSingleHiddenSMS(currdate);
-        for (SmsLine sml : lineList) {
+        if (client.state == ClientState.BOUND) {
+            String currdate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+            List<SmsLine> lineList = mDBConnection.getAllSingleHiddenSMS(currdate);
+            for (SmsLine sml : lineList) {
 
-            //Если мы уже создавали запись об отправленной тарификационной СМС в последний час,
-            // то такого клиенты мы не опрашиваем, потому что у него все равно нет баланса ;0
-            if (!mDBConnection.wasClientTariff(sml.getId_client())) {
-                //если тариф стал 0 то более нет смысла опрашивать абонента об оплате, пропускаем нулевой тариф
-                if (!sml.getTransaction_id().equals("0")) {
-                    //Создаем лог
-                    SmsLine sms = new SmsLine();
-                    sms.setId_client(sml.getId_client());
-                    sms.setStatus(-99);
-                    sms.setRate(sml.getTransaction_id());
-                    sms = mDBConnection.setSingleSMS(sms, true);
+                //Если мы уже создавали запись об отправленной тарификационной СМС в последний час,
+                // то такого клиенты мы не опрашиваем, потому что у него все равно нет баланса ;0
+                if (!mDBConnection.wasClientTariff(sml.getId_client())) {
+                    //если тариф стал 0 то более нет смысла опрашивать абонента об оплате, пропускаем нулевой тариф
+                    if (!sml.getTransaction_id().equals("0")) {
+                        //Создаем лог
+                        SmsLine sms = new SmsLine();
+                        sms.setId_client(sml.getId_client());
+                        sms.setStatus(-99);
+                        sms.setRate(sml.getTransaction_id());
+                        sms = mDBConnection.setSingleSMS(sms, true);
 
-                    if (send_core(sml, sml.getTransaction_id())) {
-                        sml.setStatus(1);
-                        sms.setStatus(99);
-                    } else {
-                        sms.setErr_code(sml.getErr_code());
+                        if (send_core(sml, sml.getTransaction_id())) {
+                            sml.setStatus(1);
+                            sms.setStatus(99);
+                        } else {
+                            sms.setErr_code(sml.getErr_code());
+                        }
+                        mDBConnection.UpdateHiddenSMSLine(sml);
+                        mDBConnection.UpdateSMSLine(sms);
                     }
-                    mDBConnection.UpdateHiddenSMSLine(sml);
-                    mDBConnection.UpdateSMSLine(sms);
                 }
             }
         }
-
     }
 
     //рекурсивная функция прохода по всем тарифам

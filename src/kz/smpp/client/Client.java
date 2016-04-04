@@ -111,7 +111,7 @@ public class Client implements Runnable {
 
     //Устанавливаем переодичное задание на выполнение бакапирование и заливку на гугл драйв
     public void runSystemServiceTask() {
-        this.SysTask = this.timer.scheduleAtFixedRate(new SystemServiceTask(mDBConnection), 0, 1, TimeUnit.HOURS);
+        this.SysTask = this.timer.scheduleAtFixedRate(new SystemServiceTask(mDBConnection), 1, 1, TimeUnit.HOURS);
     }
 
     //Устанавливаем переодичное задание на выполнение списания платы с абонентов.
