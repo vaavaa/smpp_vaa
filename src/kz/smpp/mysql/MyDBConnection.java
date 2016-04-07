@@ -24,7 +24,6 @@ import java.util.Date;
 public class MyDBConnection {
 
     private static Connection myConnection;
-    private Statement statement;
     private PreparedStatement preparedStatement;
     public static final org.slf4j.Logger log = LoggerFactory.getLogger(MyDBConnection.class);
 
@@ -52,29 +51,6 @@ public class MyDBConnection {
         return myConnection;
     }
 
-
-    public void close(ResultSet rs) {
-
-        if (rs != null) {
-            try {
-                rs.close();
-            } catch (Exception e) {
-            }
-
-        }
-    }
-
-    public void close(java.sql.Statement stmt) {
-
-        if (stmt != null) {
-            try {
-                stmt.close();
-            } catch (Exception e) {
-            }
-
-        }
-    }
-
     public void destroy() {
 
         if (myConnection != null) {
@@ -94,9 +70,8 @@ public class MyDBConnection {
      * @throws SQLException
      */
     public ResultSet query(String query) throws SQLException {
-        statement = myConnection.createStatement();
-        ResultSet res = statement.executeQuery(query);
-        return res;
+        preparedStatement = myConnection.prepareStatement(query);
+        return preparedStatement.executeQuery();
     }
 
     /**
@@ -110,6 +85,7 @@ public class MyDBConnection {
         int result = preparedStatement.executeUpdate();
         myConnection.commit();
         preparedStatement.close();
+        preparedStatement = null;
         return result;
     }
 
@@ -142,8 +118,8 @@ public class MyDBConnection {
     public int getLastId() throws SQLException {
         int result = -1;
         String lastIdString = "SELECT LAST_INSERT_ID() as LIID";
-        statement = myConnection.createStatement();
-        ResultSet res = statement.executeQuery(lastIdString);
+        preparedStatement = myConnection.prepareStatement(lastIdString);
+        ResultSet res = preparedStatement.executeQuery();
         if (res.next()) {
             result = res.getInt("LIID");
         }
@@ -165,6 +141,24 @@ public class MyDBConnection {
             ex.printStackTrace();
         }
         return l_client;
+    }
+
+    public int lineCount(String select_date) {
+        int iReturn = 0;
+        String sql_string = "SELECT count(id_sms) as idSms FROM sms_line " +
+                "WHERE (status = 0 or status = 4 or status = 2 or status = 3 or status = 5)" +
+                " AND created_time > '"+ select_date +"' LIMIT 1";
+        try {
+            ResultSet rs = this.query(sql_string);
+            if (rs.next()) {
+                iReturn = rs.getInt("idSms");
+            }
+            rs.close();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            iReturn = 10;
+        }
+        return iReturn;
     }
 
     public client getClient(long msisdn) {
@@ -474,8 +468,8 @@ public class MyDBConnection {
     public List<SmsLine> getAllSingleHiddenSMS(String date) {
         List<SmsLine> lineList = new ArrayList<>();
         String sql_string = "SELECT id_sms_line, id_client, id_content_type, sum, " +
-                " date_send FROM sms_line_quiet WHERE status = 0 AND date_send='" + date + "'";
-
+                " date_send FROM sms_line_quiet WHERE status = 0 AND date_send='" + date + "' and id_client NOT IN("+
+                "SELECT id_client FROM sms_line WHERE STATUS =-99 AND created_time> DATE_ADD(now(), INTERVAL -2 HOUR)) LIMIT 200";
         try {
             ResultSet rsm = this.query(sql_string);
             while (rsm.next()) {
@@ -483,7 +477,7 @@ public class MyDBConnection {
                 sm.setId_sms(rsm.getInt("id_sms_line"));
                 sm.setId_client(rsm.getInt("id_client"));
                 sm.setRate("" + rsm.getInt("id_content_type"));
-                sm.setStatus(0);
+                sm.setStatus(-1);
                 sm.setTransaction_id("" + rsm.getInt("sum"));
                 sm.setDate(new SimpleDateFormat("yyyy-MM-dd").format(rsm.getDate("date_send")));
                 lineList.add(sm);
@@ -539,11 +533,33 @@ public class MyDBConnection {
         return smsLines;
     }
 
+    public List<SmsLine> getClientsOperator() {
+        List<SmsLine> smsLines = new ArrayList<>();
+        String sql_string = "SELECT client_id FROM client_3200";
+        try {
+            ResultSet rs = this.query(sql_string);
+            while (rs.next()) {
+                SmsLine sm = new SmsLine();
+                sm.setId_sms(0);
+                sm.setId_client(rs.getInt("client_id"));
+                sm.setStatus(0);
+                sm.setTransaction_id("");
+                sm.setSms_body("START");
+                sm.setRate("0");
+                smsLines.add(sm);
+            }
+            rs.close();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return smsLines;
+    }
+
     public boolean getFollowUpLine() {
         boolean result = false;
         String sql_string = "INSERT INTO sms_line(id_client, sms_body, status)" +
                 " SELECT client_session_140.id_client, '" + this.getSettings("welcome_message_fail_session") + "', '0' FROM client_session_140 " +
-                "WHERE now()>  DATE_ADD(client_session_140.time, INTERVAL 120 SECOND)";
+                "WHERE now()>  DATE_ADD(client_session_140.time, INTERVAL 90 SECOND)";
         try {
             this.Update(sql_string);
             result = true;
@@ -556,7 +572,7 @@ public class MyDBConnection {
     public boolean RemoveDeadSessions() {
         boolean result = false;
         String sql_string =
-                "DELETE FROM client_session_140 WHERE NOW() > DATE_ADD(client_session_140.time, INTERVAL 120 SECOND)";
+                "DELETE FROM client_session_140 WHERE NOW() > DATE_ADD(client_session_140.time, INTERVAL 90 SECOND)";
         try {
             this.Update(sql_string);
             result = true;
@@ -565,6 +581,23 @@ public class MyDBConnection {
         }
         return result;
     }
+
+    public boolean RemoveClientRegistration(int client_id) {
+        boolean result = false;
+        String sql_string1 =
+                "UPDATE clients SET status = 5 WHERE id = "+client_id;
+        String sql_string =
+                "DELETE FROM client_3200 WHERE client_id = "+client_id;
+        try {
+            this.Update(sql_string1);
+            this.Update(sql_string);
+            result = true;
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return result;
+    }
+
 
     public SmsLine UpdateSMSLine(SmsLine smsLine) {
         String sql_string = "UPDATE sms_line" +

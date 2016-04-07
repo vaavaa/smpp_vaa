@@ -10,6 +10,7 @@ import kz.smpp.mysql.SmsLine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Calendar;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -42,8 +43,12 @@ public class Client implements Runnable {
     protected long rebindPeriod = 5;
     protected long elinkPeriod = 5;
 
-    protected int timeRespond = 600;
-    protected int ErrorsCount = 10;
+    protected int timeRespond = 60;
+
+    protected boolean HiddenMessageTask = false;
+    protected boolean MessageSendTask = false;
+    protected boolean ServiceSendTask = false;
+    protected long DeadSessionTask_TimeStamp = Calendar.getInstance().getTimeInMillis()-15000;
 
 
     protected MyDBConnection mDBConnection;
@@ -51,7 +56,7 @@ public class Client implements Runnable {
     public Client(SmppSessionConfiguration cfg, MyDBConnection mDBCon) {
         this.cfg = cfg;
         this.mDBConnection = mDBCon;
-        this.timer = Executors.newScheduledThreadPool(10);
+        this.timer = Executors.newScheduledThreadPool(6);
     }
 
     @Override
@@ -71,6 +76,7 @@ public class Client implements Runnable {
         this.smppClient.destroy();
 
         this.state = ClientState.STOPPED;
+
     }
 
     public void start() {
@@ -89,15 +95,16 @@ public class Client implements Runnable {
         this.elinkTask = this.timer.scheduleAtFixedRate(new ElinkTask(this), getElinkPeriod(), getElinkPeriod(), TimeUnit.SECONDS);
     }
 
-    //Устанавливаем переодичное задание на выполнение
-    public void runMessageSendTask() {
-        this.messageTask = this.timer.scheduleAtFixedRate(new MessageSendTask(this, mDBConnection), 0, 10, TimeUnit.SECONDS);
-    }
-
     //Устанавливаем переодичное задание на выполнение повисшие сессии переходят в сообщения
     public void runDeadSessionTask() {
-        this.deadSessionTask = this.timer.scheduleAtFixedRate(new DeadSessionTask(mDBConnection), 0, 90, TimeUnit.SECONDS);
+        this.deadSessionTask = this.timer.scheduleAtFixedRate(new DeadSessionTask(this, mDBConnection), 0, 15, TimeUnit.SECONDS);
     }
+
+    //Устанавливаем переодичное задание на выполнение
+    public void runMessageSendTask() {
+        this.messageTask = this.timer.scheduleAtFixedRate(new MessageSendTask(this, mDBConnection), 0, 2, TimeUnit.SECONDS);
+    }
+
 
     //Устанавливаем переодичное задание на выполнение пополнение контента
     public void runFeedContentTask() {
@@ -111,7 +118,7 @@ public class Client implements Runnable {
 
     //Устанавливаем переодичное задание на выполнение бакапирование и заливку на гугл драйв
     public void runSystemServiceTask() {
-        this.SysTask = this.timer.scheduleAtFixedRate(new SystemServiceTask(mDBConnection), 1, 1, TimeUnit.HOURS);
+        this.SysTask = this.timer.scheduleAtFixedRate(new SystemServiceTask(mDBConnection), 0, 1, TimeUnit.HOURS);
     }
 
     //Устанавливаем переодичное задание на выполнение списания платы с абонентов.
@@ -160,13 +167,15 @@ public class Client implements Runnable {
                 this.rebindTask.cancel(true);
             }
             runElinkTask();
-            runMessageSendTask();
             runDeadSessionTask();
+            runMessageSendTask();
             runFeedContentTask();
             runServiceSendTask();
             runSystemServiceTask();
             runHiddenSMSTask();
             runInformMonthly();
+
+
         }
     }
 
@@ -186,6 +195,10 @@ public class Client implements Runnable {
         InfoTask.cancel(true);
         this.timer.shutdown();
         this.timer = null;
+
+        this.HiddenMessageTask = false;
+        this.MessageSendTask = false;
+        this.ServiceSendTask = false;
     }
 
     // getters and setters

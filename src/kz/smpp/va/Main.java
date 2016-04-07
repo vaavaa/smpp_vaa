@@ -127,9 +127,9 @@ public class Main {
             sessionConfig.setLoggingOptions(loggingOptions);
 
             client = new Client(sessionConfig, mDBConnection);
-            client.setElinkPeriod(40);
+            client.setElinkPeriod(640);
             client.setSessionHandler(new MySmppSessionHandler(client,mDBConnection));
-            pool = Executors.newFixedThreadPool(10);
+            pool = Executors.newFixedThreadPool(2);
             pool.submit(client);
 
             client.start();

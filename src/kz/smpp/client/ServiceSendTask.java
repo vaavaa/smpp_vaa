@@ -26,7 +26,7 @@ public class ServiceSendTask implements Runnable {
 
     public ServiceSendTask(Client client, MyDBConnection mDBConn) {
         this.client = client;
-        this.mDBConnection = mDBConn;
+        mDBConnection = new MyDBConnection();
     }
 
     @Override
@@ -35,11 +35,14 @@ public class ServiceSendTask implements Runnable {
         Calendar cal = Calendar.getInstance();
         int currentHour = cal.get(Calendar.HOUR_OF_DAY);
         int currentMinutes = cal.get(Calendar.MINUTE);
-
-        if (currentHour >= 9 && currentHour < 18) Horoscope();
-        if (currentHour >= 9 && currentHour < 20) Rate();
-        if (currentHour >= 13 && currentHour < 21) Anecdote();
-        if ((currentHour >= 8 && currentMinutes > 30) && currentHour < 17) metcast();
+        if (!client.ServiceSendTask) {
+            client.ServiceSendTask = true;
+            if (currentHour >= 9 && currentHour < 18) Horoscope();
+            if (currentHour >= 9 && currentHour < 20) Rate();
+            if (currentHour >= 13 && currentHour < 21) Anecdote();
+            if ((currentHour >= 8 && currentMinutes > 30) && currentHour < 17) metcast();
+            client.ServiceSendTask = false;
+        }
     }
 
     private void metcast() {
@@ -49,6 +52,7 @@ public class ServiceSendTask implements Runnable {
             String an_value = mDBConnection.getMetcastFromDate(date);
             //У нас 5 контент для погоды
             RunSMSSend(5, an_value);
+            ServiceAction(5);
         }
 
     }
@@ -60,6 +64,7 @@ public class ServiceSendTask implements Runnable {
             String an_value = mDBConnection.getHoroscopeFromDate(date);
             //У нас 4 контент для гороскопа
             RunSMSSend(4, an_value);
+            ServiceAction(4);
         }
     }
 
@@ -69,6 +74,7 @@ public class ServiceSendTask implements Runnable {
             String an_value = mDBConnection.getRateFromDate(new Date());
             //У нас третий контент для rate
             RunSMSSend(3, an_value);
+            ServiceAction(3);
         }
     }
 
@@ -79,6 +85,7 @@ public class ServiceSendTask implements Runnable {
             String an_value = mDBConnection.getAnecdoteFromDate(date);
             //У нас второй контент для rate
             RunSMSSend(2, an_value);
+            ServiceAction(2);
         }
     }
 
@@ -105,19 +112,11 @@ public class ServiceSendTask implements Runnable {
                 if (single_clnt.getHelpDate().getTime() > c.getTime().getTime()) {
                     //Если не попадает под тарификацию
                     //То сразу создаем сообщение на отправку
-                    int ireturn  = mDBConnection.setSingleSMS(sm);
-                    if (ireturn > 0){
-                        sm.setId_sms(ireturn);
-                        ServiceAction(sm);
-                    }
+                    mDBConnection.setSingleSMS(sm);
                 } else {
                     //Если у клиента уже есть оплата за день, то отправляем рассылку
                     if (mDBConnection.checkPayment(single_clnt.getId(), conType, date)) {
-                        int ireturn  = mDBConnection.setSingleSMS(sm);
-                        if (ireturn > 0){
-                            sm.setId_sms(ireturn);
-                            ServiceAction(sm);
-                        }
+                        mDBConnection.setSingleSMS(sm);
                     }
                 }
 
@@ -125,46 +124,50 @@ public class ServiceSendTask implements Runnable {
         }
     }
 
-    private void ServiceAction(SmsLine sml) {
+    private void ServiceAction(int TypeContent) {
         SmppSession session = client.getSession();
-        if (client.state == ClientState.BOUND) {
-            try {
-                log.debug("Send one SM");
+        List<SmsLine> SMs = mDBConnection.getSMSLine(TypeContent);
+        for (SmsLine sml : SMs) {
+            if (client.state == ClientState.BOUND) {
+                try {
 
-                int SequenceNumber = 1 + (int) (Math.random() * 32000);
-                String client_msisdn = Long.toString(mDBConnection.getClient(sml.getId_client()).getAddrs());
+                    int SequenceNumber = 1 + (int) (Math.random() * 32000);
+                    String client_msisdn = Long.toString(mDBConnection.getClient(sml.getId_client()).getAddrs());
 
-                byte[] textBytes = CharsetUtil.encode(sml.getSms_body(), "UCS-2");
+                    byte[] textBytes = CharsetUtil.encode(sml.getSms_body(), "UCS-2");
 
-                SubmitSm sm = new SubmitSm();
-                sm.setSourceAddress(new Address((byte) 0x00, (byte) 0x01, mDBConnection.getSettings("my_msisdn")));
-                sm.setDestAddress(new Address((byte) 0x01, (byte) 0x01, client_msisdn));
-                sm.setDataCoding((byte) 8);
-                sm.setEsmClass((byte) 0);
-                sm.setShortMessage(null);
-                sm.setSequenceNumber(SequenceNumber);
-                //Все сообщения по 0 тарифу, но попадают они сюда если в Hidden появилась запись запись с суммой <20
-                sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, mDBConnection.getSettings("0").getBytes(), "sourcesub_address"));
-                sm.setOptionalParameter(new Tlv(SmppConstants.TAG_MESSAGE_PAYLOAD, textBytes, "messagePayload"));
-                sm.calculateAndSetCommandLength();
+                    SubmitSm sm = new SubmitSm();
+                    sm.setSourceAddress(new Address((byte) 0x00, (byte) 0x01, mDBConnection.getSettings("my_msisdn")));
+                    sm.setDestAddress(new Address((byte) 0x01, (byte) 0x01, client_msisdn));
+                    sm.setDataCoding((byte) 8);
+                    sm.setEsmClass((byte) 0);
+                    sm.setShortMessage(null);
+                    sm.setSequenceNumber(SequenceNumber);
+                    //Все сообщения по 0 тарифу, но попадают они сюда если в Hidden появилась запись запись с суммой <20
+                    sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, mDBConnection.getSettings("0").getBytes(), "sourcesub_address"));
+                    sm.setOptionalParameter(new Tlv(SmppConstants.TAG_MESSAGE_PAYLOAD, textBytes, "messagePayload"));
+                    sm.calculateAndSetCommandLength();
+                    sml.setStatus(-1);
+                    if (!session.isClosed() && !session.isUnbinding()) {
+                        SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(client.timeRespond));
+                        log.debug("SM sent" + sm.toString());
 
-                SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(client.timeRespond));
-                log.debug("SM sent" + sm.toString());
-
-                if (resp.getCommandStatus() != 0) {
-                    sml.setErr_code(Integer.toString(resp.getCommandStatus()));
+                        if (resp.getCommandStatus() != 0) {
+                            sml.setErr_code(Integer.toString(resp.getCommandStatus()));
+                            sml.setStatus(-1);
+                            mDBConnection.UpdateSMSLine(sml);
+                        } else {
+                            sml.setStatus(1);
+                            mDBConnection.UpdateSMSLine(sml);
+                        }
+                    }
+                } catch (SmppTimeoutException | SmppChannelException
+                        | UnrecoverablePduException | InterruptedException | RecoverablePduException ex) {
+                    //фиксируем сбой отправки
                     sml.setStatus(-1);
                     mDBConnection.UpdateSMSLine(sml);
-                } else {
-                    sml.setStatus(1);
-                    mDBConnection.UpdateSMSLine(sml);
+                    log.debug("System's error, sending failure ", ex);
                 }
-            } catch (SmppTimeoutException | SmppChannelException
-                    | UnrecoverablePduException | InterruptedException | RecoverablePduException ex) {
-                //фиксируем сбой отправки
-                 sml.setStatus(-1);
-                 mDBConnection.UpdateSMSLine(sml);
-                log.debug("System's error, sending failure ", ex);
             }
         }
     }

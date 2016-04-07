@@ -10,8 +10,9 @@ public class SystemServiceTask implements  Runnable {
 
 	public static final Logger log = LoggerFactory.getLogger(SystemServiceTask.class);
     MyDBConnection mDBConnection;
-	public SystemServiceTask(MyDBConnection mDBConn) {
-        mDBConnection = mDBConn;
+
+    public SystemServiceTask(MyDBConnection mDBConn) {
+        mDBConnection = new MyDBConnection();
 	}
 
 	@Override

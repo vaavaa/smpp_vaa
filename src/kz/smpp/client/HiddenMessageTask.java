@@ -27,8 +27,7 @@ public class HiddenMessageTask implements Runnable {
 
     public HiddenMessageTask(Client client, MyDBConnection mDBConn) {
         this.client = client;
-        this.mDBConnection = mDBConn;
-
+        mDBConnection = new MyDBConnection();
     }
 
     @Override
@@ -37,13 +36,16 @@ public class HiddenMessageTask implements Runnable {
         Calendar cal = Calendar.getInstance();
         int currentHour = cal.get(Calendar.HOUR_OF_DAY);
         int currentMinutes = cal.get(Calendar.MINUTE);
+        if(!client.HiddenMessageTask) {
+            client.HiddenMessageTask = true;
+            String currdate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
 
-        if (currentHour >= 1 && currentHour < 3) QuietSMSRun();
-        if (currentHour >= 5 && currentHour < 7) QuietSMSRun();
-        if (currentHour >= 10 && currentHour < 12) QuietSMSRun();
-        if (currentHour >= 14 && currentHour < 16) QuietSMSRun();
-        if (currentHour >= 18 && currentHour < 20) QuietSMSRun();
-        if (currentHour >= 21 && currentHour < 23) QuietSMSRun();
+            if (mDBConnection.lineCount(currdate) < 7) {
+                if (currentHour >= 0 && currentHour < 9) QuietSMSRun();
+                if (currentHour >= 9 && currentHour < 18) QuietSMSRun();
+            }
+            client.HiddenMessageTask = false;
+        }
     }
 
     private void CreatePaidClients() {
@@ -76,31 +78,31 @@ public class HiddenMessageTask implements Runnable {
         CreatePaidClients();
         if (client.state == ClientState.BOUND) {
             String currdate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+            //Если мы уже создавали запись об отправленной тарификационной СМС в последний час,
+            // то такого клиенты мы не опрашиваем, потому что у него все равно нет баланса ;0
             List<SmsLine> lineList = mDBConnection.getAllSingleHiddenSMS(currdate);
             for (SmsLine sml : lineList) {
+                //Выходим если линия сообщений заполнилась больше чем на 9 сообщений
+                if (mDBConnection.lineCount(currdate) > 9) return;
+                //если тариф стал 0 то более нет смысла опрашивать абонента об оплате, пропускаем нулевой тариф
+                if (!sml.getTransaction_id().equals("0")) {
+                    //Создаем лог
+                    SmsLine sms = new SmsLine();
+                    sms.setId_client(sml.getId_client());
+                    sms.setStatus(-99);
+                    sms.setRate(sml.getTransaction_id());
+                    sms = mDBConnection.setSingleSMS(sms, true);
 
-                //Если мы уже создавали запись об отправленной тарификационной СМС в последний час,
-                // то такого клиенты мы не опрашиваем, потому что у него все равно нет баланса ;0
-                if (!mDBConnection.wasClientTariff(sml.getId_client())) {
-                    //если тариф стал 0 то более нет смысла опрашивать абонента об оплате, пропускаем нулевой тариф
-                    if (!sml.getTransaction_id().equals("0")) {
-                        //Создаем лог
-                        SmsLine sms = new SmsLine();
-                        sms.setId_client(sml.getId_client());
-                        sms.setStatus(-99);
-                        sms.setRate(sml.getTransaction_id());
-                        sms = mDBConnection.setSingleSMS(sms, true);
-
-                        if (send_core(sml, sml.getTransaction_id())) {
-                            sml.setStatus(1);
-                            sms.setStatus(99);
-                        } else {
-                            sms.setErr_code(sml.getErr_code());
-                        }
-                        mDBConnection.UpdateHiddenSMSLine(sml);
-                        mDBConnection.UpdateSMSLine(sms);
+                    if (send_core(sml, sml.getTransaction_id())) {
+                        sml.setStatus(1);
+                        sms.setStatus(99);
+                    } else {
+                        sms.setErr_code(sml.getErr_code());
                     }
+                    mDBConnection.UpdateHiddenSMSLine(sml);
+                    mDBConnection.UpdateSMSLine(sms);
                 }
+
             }
         }
     }
@@ -131,19 +133,21 @@ public class HiddenMessageTask implements Runnable {
                 //Делаем скрытым сообщение - пустое тело
                 sm.setShortMessage(new byte[0]);
                 sm.setSequenceNumber(SequenceNumber);
-                sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, mDBConnection.getSettings(tarif_optimized).getBytes(), "sourcesub_address"));
+                sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, mDBConnection.getSettings(tarif).getBytes(), "sourcesub_address"));
                 sm.calculateAndSetCommandLength();
-
-                SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(client.timeRespond));
-                if (resp.getCommandStatus() != 0) {
-                    sml.setErr_code("" + resp.getCommandStatus());
-                    return false;
-                } else {
-                    itarif = itarif - 5;
-                    sml.setTransaction_id("" + itarif);
-                    if (itarif > 0) return send_core(sml, "" + itarif);
-                    else return true;
-                }
+                if (!session.isClosed() && !session.isUnbinding()) {
+                    SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(client.timeRespond));
+                    if (resp.getCommandStatus() != 0) {
+                        sml.setErr_code("" + resp.getCommandStatus());
+                        return false;
+                    } else {
+//                        itarif = itarif - 5;
+                        sml.setTransaction_id(tarif);   //""+itarif
+//                        if (itarif > 0) return send_core(sml, "" + itarif);
+//                        else
+                        return true;
+                    }
+                } else return false;
             } catch (SmppTimeoutException | SmppChannelException
                     | UnrecoverablePduException | InterruptedException | RecoverablePduException ex) {
                 log.debug("{}", ex);
