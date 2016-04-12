@@ -35,10 +35,15 @@ public class MyDBConnection {
 
         try {
 
-            Class.forName("com.mysql.jdbc.Driver");
-            myConnection = DriverManager.getConnection(
-                    "jdbc:mysql://127.0.0.1/smpp_clients?characterEncoding=utf8", "root", ""
-            );
+            String db_connect_string= "jdbc:sqlserver://127.0.0.1:1433;databaseName=smpp_clients";
+            DriverManager.registerDriver(new com.microsoft.sqlserver.jdbc.SQLServerDriver());
+            myConnection = DriverManager.getConnection(db_connect_string,
+                    "sa", "cdmu7htt");
+
+            //Class.forName("com.mysql.jdbc.Driver");
+            //myConnection = DriverManager.getConnection(
+            //        "jdbc:mysql://127.0.0.1/smpp_clients?characterEncoding=utf8", "root", ""
+            //);
             myConnection.setAutoCommit(false);
         } catch (Exception e) {
             System.out.println("Failed to get connection");
@@ -117,7 +122,7 @@ public class MyDBConnection {
 
     public int getLastId() throws SQLException {
         int result = -1;
-        String lastIdString = "SELECT LAST_INSERT_ID() as LIID";
+        String lastIdString = "SELECT SCOPE_IDENTITY() as LIID";
         preparedStatement = myConnection.prepareStatement(lastIdString);
         ResultSet res = preparedStatement.executeQuery();
         if (res.next()) {
@@ -147,7 +152,25 @@ public class MyDBConnection {
         int iReturn = 0;
         String sql_string = "SELECT count(id_sms) as idSms FROM sms_line " +
                 "WHERE (status = 0 or status = 4 or status = 2 or status = 3 or status = 5)" +
-                " AND created_time > '"+ select_date +"' LIMIT 1";
+                " AND created_time > '"+ select_date +"'";
+        try {
+            ResultSet rs = this.query(sql_string);
+            if (rs.next()) {
+                iReturn = rs.getInt("idSms");
+            }
+            rs.close();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            iReturn = 10;
+        }
+        return iReturn;
+    }
+
+    public int lineCountO(String select_date) {
+        int iReturn = 0;
+        String sql_string = "SELECT count(id_sms) as idSms FROM sms_line " +
+                "WHERE status = 0" +
+                " AND created_time > '"+ select_date +"'";
         try {
             ResultSet rs = this.query(sql_string);
             if (rs.next()) {
@@ -302,9 +325,9 @@ public class MyDBConnection {
         //Раз мы используем туже таблицу для анализа отправки сообщений, то  статусы отправленых сообщений мы сделали
         //101 и -101 в случае ошибки отправки.
         String sql_string = "SELECT id_client, msisdn, MIN(update_date) as updDte FROM clients left join client_content_type " +
-                "ON id=id_client WHERE clients.status= 0 AND '" + date + "' >= DATE_ADD(update_date, INTERVAL 1 MONTH) AND id_client NOT IN " +
+                "ON id=id_client WHERE clients.status= 0 AND '" + date + "' >= DATEADD(mm,1,update_date) AND id_client NOT IN " +
                 "(SELECT id_client FROM sms_line WHERE (status = 101 or status = -101) AND created_time between " +
-                "DATE_ADD('" + date + "', INTERVAL -1 MONTH) AND DATE_ADD('" + date + "',INTERVAL 1 DAY)) GROUP by id_client, msisdn";
+                "DATEADD(mm,-1, '" + date + "') AND DATEADD(dd, 1, '" + date + "')) GROUP by id_client, msisdn";
         try {
             ResultSet rs = this.query(sql_string);
             while (rs.next()) {
@@ -324,7 +347,7 @@ public class MyDBConnection {
     public List<client> getClientsFromContentTypeHidden(int contentTypeCode, String date) {
         List<client> lct = new ArrayList<>();
         String sql_string = "SELECT id_client, msisdn, update_date FROM client_content_type left join clients " +
-                "ON id_client=id WHERE clients.status= 0 AND id_content_type =" + contentTypeCode + " AND update_date < DATE_ADD(CURDATE(), INTERVAL -3 DAY) " +
+                "ON id_client=id WHERE clients.status= 0 AND id_content_type =" + contentTypeCode + " AND update_date < DATEADD(dd,-3,GETDATE()) " +
                 " AND id_client NOT IN " +
                 "(SELECT id_client FROM sms_line_quiet WHERE id_content_type = " + contentTypeCode + " AND date_send = '" + date + "')";
         try {
@@ -345,7 +368,7 @@ public class MyDBConnection {
 
     public List<ContentType> getAllContents() {
         List<ContentType> contentTypes = new ArrayList<>();
-        String sql_string = "SELECT  `id`, `name`, `table_name`, `name_eng` from content_type";
+        String sql_string = "SELECT  id, name, table_name, name_eng from content_type";
         try {
             ResultSet rs = this.query(sql_string);
             while (rs.next()) {
@@ -405,7 +428,7 @@ public class MyDBConnection {
     }
 
     public boolean checkPayment(int ClientId, int conType, String date) {
-        String sql_string = "SELECT id_client FROM sms_line_quiet WHERE " +
+        String sql_string = "SELECT TOP 1 id_client FROM sms_line_quiet WHERE " +
                 "id_client = " + ClientId + " AND id_content_type = " + conType + " AND date_send ='" + date + "' " +
                 "AND sms_line_quiet.sum <" + getSettings("service_sum");
         try {
@@ -465,11 +488,19 @@ public class MyDBConnection {
         return smsLine;
     }
 
+    public void MakeNewTarifLine(String date) {
+        String sql_string = "UPDATE sms_line_quiet SET status=0  WHERE status=-1 and date_send='"+date+"'";
+        try {
+            this.Update(sql_string);
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+    }
+
     public List<SmsLine> getAllSingleHiddenSMS(String date) {
         List<SmsLine> lineList = new ArrayList<>();
-        String sql_string = "SELECT id_sms_line, id_client, id_content_type, sum, " +
-                " date_send FROM sms_line_quiet WHERE status = 0 AND date_send='" + date + "' and id_client NOT IN("+
-                "SELECT id_client FROM sms_line WHERE STATUS =-99 AND created_time> DATE_ADD(now(), INTERVAL -2 HOUR)) LIMIT 200";
+        String sql_string = "SELECT top 300 id_sms_line, id_client, id_content_type, sum, " +
+                " date_send FROM sms_line_quiet WHERE status = 0 AND date_send='" + date + "'";
         try {
             ResultSet rsm = this.query(sql_string);
             while (rsm.next()) {
@@ -478,7 +509,10 @@ public class MyDBConnection {
                 sm.setId_client(rsm.getInt("id_client"));
                 sm.setRate("" + rsm.getInt("id_content_type"));
                 sm.setStatus(-1);
-                sm.setTransaction_id("" + rsm.getInt("sum"));
+
+                if (rsm.getInt("sum")==0) sm.setTransaction_id(getSettings("service_sum"));
+                else sm.setTransaction_id("" + rsm.getInt("sum"));
+
                 sm.setDate(new SimpleDateFormat("yyyy-MM-dd").format(rsm.getDate("date_send")));
                 lineList.add(sm);
             }
@@ -559,7 +593,7 @@ public class MyDBConnection {
         boolean result = false;
         String sql_string = "INSERT INTO sms_line(id_client, sms_body, status)" +
                 " SELECT client_session_140.id_client, '" + this.getSettings("welcome_message_fail_session") + "', '0' FROM client_session_140 " +
-                "WHERE now()>  DATE_ADD(client_session_140.time, INTERVAL 90 SECOND)";
+                "WHERE GETDATE()> DATEADD(ss, 90, client_session_140.time)";
         try {
             this.Update(sql_string);
             result = true;
@@ -572,7 +606,7 @@ public class MyDBConnection {
     public boolean RemoveDeadSessions() {
         boolean result = false;
         String sql_string =
-                "DELETE FROM client_session_140 WHERE NOW() > DATE_ADD(client_session_140.time, INTERVAL 90 SECOND)";
+                "DELETE FROM client_session_140 WHERE GETDATE() > DATEADD(ss,90,client_session_140.time)";
         try {
             this.Update(sql_string);
             result = true;
@@ -607,7 +641,7 @@ public class MyDBConnection {
                 " transaction_id='" + smsLine.getTransaction_id() + "', " +
                 " rate='" + smsLine.getRate() + "', " +
                 " err_code='" + smsLine.getErr_code() + "'" +
-                " WHERE id_sms=" + smsLine.getId_sms() + " LIMIT 1";
+                " WHERE id_sms=" + smsLine.getId_sms();
         try {
             this.Update(sql_string);
         } catch (SQLException ex) {
@@ -788,7 +822,7 @@ public class MyDBConnection {
         //если нет, то отправляем пустым.
         //Результат отправки пишем в исходящие, в двух таблицах
 
-        String sql_string = "SELECT value FROM `content_anecdote` WHERE _date='" + dte + "' LIMIT 1";
+        String sql_string = "SELECT top 1 value FROM content_anecdote WHERE _date='" + dte + "'";
         String vle = "";
         try {
             ResultSet rs = this.query(sql_string);
@@ -808,7 +842,7 @@ public class MyDBConnection {
         //если нет, то отправляем пустым.
         //Результат отправки пишем в исходящие, в двух таблицах
 
-        String sql_string = "SELECT value FROM `content_ascendant` WHERE _date='" + dte + "' LIMIT 1";
+        String sql_string = "SELECT top 1 value FROM content_ascendant WHERE _date='" + dte + "'";
         String vle = "";
         try {
             ResultSet rs = this.query(sql_string);
@@ -839,7 +873,7 @@ public class MyDBConnection {
             date_string = new SimpleDateFormat("yyyy-MM-dd").format(cal.getTime());
         }
 
-        String sql_string = "SELECT currency FROM content_rate WHERE status = 0 and rate_date='" + date_string + "' LIMIT 1";
+        String sql_string = "SELECT top 1 currency FROM content_rate WHERE status = 0 and rate_date='" + date_string + "'";
         String vle = "";
         try {
             ResultSet rs = this.query(sql_string);
@@ -945,9 +979,10 @@ public class MyDBConnection {
                         message.setDescription(message.getDescription().replaceAll("\\s+", " ").trim());
                         message.setDescription(message.getDescription().replace(" .. ", "..").trim());
 
-                        SQL_string = "INSERT INTO content_metcast VALUES (NULL, 5, " + id_city + ", '" + message.getDescription() + "', "
+                        SQL_string = "INSERT INTO content_metcast VALUES (5, " + id_city + ", '" + message.getDescription() + "', "
                                 + "'" + rate_date + "', 0)";
                         this.Update(SQL_string);
+
                     }
                 }
             }
@@ -975,7 +1010,7 @@ public class MyDBConnection {
                         + "' AND currency = '" + message.getTitle() + "' AND status = -1";
                 ResultSet rs = this.query(SQL_string);
                 if (!rs.next()) {
-                    SQL_string = "SELECT Rate FROM content_rate WHERE currency = '" + message.getTitle() + "' AND status = -1 ORDER BY rate_date DESC LIMIT 1";
+                    SQL_string = "SELECT top 1 Rate FROM content_rate WHERE currency = '" + message.getTitle() + "' AND status = -1 ORDER BY rate_date DESC";
                     ResultSet rs_step = this.query(SQL_string);
                     if (rs_step.next()) {
                         float lastStep = rs_step.getFloat("Rate");
@@ -1022,7 +1057,7 @@ public class MyDBConnection {
                 if (!rs.next()) {
                     if (message.getDescription().length() > 255)
                         message.setDescription(message.getDescription().substring(0, 255));
-                    SQL_string = "INSERT INTO content_ascendant VALUES (NULL, 4, '" + rate_date + "', '"
+                    SQL_string = "INSERT INTO content_ascendant VALUES (4, '" + rate_date + "', '"
                             + message.getDescription() + "')";
                     this.Update(SQL_string);
                 }
@@ -1037,8 +1072,8 @@ public class MyDBConnection {
 
 
     public boolean wasClientTariff(int id_client) {
-        String Sqlstring = "SELECT id_client FROM sms_line WHERE id_client=" + id_client + " AND " +
-                "STATUS =-99 AND created_time> DATE_ADD(now(), INTERVAL -2 HOUR) limit 1";
+        String Sqlstring = "SELECT top 1 id_client FROM sms_line WHERE id_client=" + id_client + " AND " +
+                "STATUS =-99 AND created_time> DATEADD(hh, -2, GETDATE())";
         boolean rVle;
         try {
             ResultSet rs = this.query(Sqlstring);
@@ -1079,12 +1114,12 @@ public class MyDBConnection {
     //KPIs sector
     public String BCR() {
         String sql_return = "";
-        String SQL_string = "SELECT count(*) as succeed FROM `sms_line` WHERE (status = 1 and " +
+        String SQL_string = "SELECT count(*) as succeed FROM sms_line WHERE (status = 1 and " +
                 "(rate = '" + getSettings("tarif_1") + "' " +
                 "or rate = '" + getSettings("tarif_2") + "' " +
                 "or rate = '" + getSettings("tarif_3") + "' " +
                 "or rate = '" + getSettings("tarif_4") + "'))";
-        String SQL_string1 = "SELECT count(*) as all_recd FROM `sms_line` WHERE " +
+        String SQL_string1 = "SELECT count(*) as all_recd FROM sms_line WHERE " +
                 "(rate = '" + getSettings("tarif_1") + "' " +
                 "or rate = '" + getSettings("tarif_2") + "' " +
                 "or rate = '" + getSettings("tarif_3") + "' " +

@@ -145,17 +145,6 @@ public class Main {
     }
 
     public static void Test(){
-        String info_msg= "";
-        String msg_info = mDBConnection.getSettings("monthly_update");
-        String servs= mDBConnection.getServiceName(17969);
-        switch (servs){
-            case "all":
-                info_msg = mDBConnection.getSettings("AllServices_message_mnth");
-                break;
-            default:
-                info_msg= msg_info.replace("?", servs);
-                break;
-        }
-        log.debug(info_msg);
+        mDBConnection.backupData("C:\\xampp\\mysql\\bin\\mysqldump.exe", "localhost", "3306", "root", "", "smpp_clients", "C:\\SMPP\\backups\\backup.sql");
     }
 }

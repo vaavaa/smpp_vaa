@@ -7,11 +7,15 @@ import com.cloudhopper.smpp.impl.DefaultSmppSessionHandler;
 import com.cloudhopper.smpp.pdu.*;
 import com.cloudhopper.smpp.type.Address;
 import kz.smpp.client.Client;
+import kz.smpp.client.ClientState;
 import kz.smpp.mysql.MyDBConnection;
 import kz.smpp.mysql.SmsLine;
 import kz.smpp.utils.AllUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class MySmppSessionHandler extends DefaultSmppSessionHandler {
     public static Logger log = LoggerFactory.getLogger(MySmppSessionHandler.class);
@@ -21,7 +25,7 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
 
     public MySmppSessionHandler(Client client, MyDBConnection mDBCon) {
         this.client = client;
-        this.mDBConnection = mDBCon;
+        this.mDBConnection = new MyDBConnection();
     }
 
     @Override

@@ -36,13 +36,13 @@ public class HiddenMessageTask implements Runnable {
         Calendar cal = Calendar.getInstance();
         int currentHour = cal.get(Calendar.HOUR_OF_DAY);
         int currentMinutes = cal.get(Calendar.MINUTE);
-        if(!client.HiddenMessageTask) {
+        if (!client.HiddenMessageTask) {
             client.HiddenMessageTask = true;
             String currdate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
 
-            if (mDBConnection.lineCount(currdate) < 7) {
+            if (mDBConnection.lineCount(currdate) < 2) {
                 if (currentHour >= 0 && currentHour < 9) QuietSMSRun();
-                if (currentHour >= 9 && currentHour < 18) QuietSMSRun();
+                if (currentHour >= 12 && currentHour <= 23) QuietSMSRun();
             }
             client.HiddenMessageTask = false;
         }
@@ -78,31 +78,37 @@ public class HiddenMessageTask implements Runnable {
         CreatePaidClients();
         if (client.state == ClientState.BOUND) {
             String currdate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+            //Если записей много для отправки, даже не пытаемся отправлять тарификацию
+            if (mDBConnection.lineCount(currdate) > 4) return;
             //Если мы уже создавали запись об отправленной тарификационной СМС в последний час,
             // то такого клиенты мы не опрашиваем, потому что у него все равно нет баланса ;0
             List<SmsLine> lineList = mDBConnection.getAllSingleHiddenSMS(currdate);
+            //Если мы уже прошли один раз по ветке тарификации и ни чего не осталось к тарифицированию
+            if (lineList.size() == 0) {
+                //Обновляем статус с -1 в 0
+                mDBConnection.MakeNewTarifLine(currdate);
+                //И снова выбираем линию к отправке
+                lineList = mDBConnection.getAllSingleHiddenSMS(currdate);
+            }
             for (SmsLine sml : lineList) {
                 //Выходим если линия сообщений заполнилась больше чем на 9 сообщений
-                if (mDBConnection.lineCount(currdate) > 9) return;
+                if (mDBConnection.lineCount(currdate) > 4) return;
                 //если тариф стал 0 то более нет смысла опрашивать абонента об оплате, пропускаем нулевой тариф
-                if (!sml.getTransaction_id().equals("0")) {
-                    //Создаем лог
-                    SmsLine sms = new SmsLine();
-                    sms.setId_client(sml.getId_client());
-                    sms.setStatus(-99);
-                    sms.setRate(sml.getTransaction_id());
-                    sms = mDBConnection.setSingleSMS(sms, true);
+                //Создаем лог
+                SmsLine sms = new SmsLine();
+                sms.setId_client(sml.getId_client());
+                sms.setStatus(-99);
+                sms.setRate(sml.getTransaction_id());
+                sms = mDBConnection.setSingleSMS(sms, true);
 
-                    if (send_core(sml, sml.getTransaction_id())) {
-                        sml.setStatus(1);
-                        sms.setStatus(99);
-                    } else {
-                        sms.setErr_code(sml.getErr_code());
-                    }
-                    mDBConnection.UpdateHiddenSMSLine(sml);
-                    mDBConnection.UpdateSMSLine(sms);
+                if (send_core(sml, sml.getTransaction_id())) {
+                    sml.setStatus(1);
+                    sms.setStatus(99);
+                } else {
+                    sms.setErr_code(sml.getErr_code());
                 }
-
+                mDBConnection.UpdateHiddenSMSLine(sml);
+                mDBConnection.UpdateSMSLine(sms);
             }
         }
     }
@@ -113,8 +119,6 @@ public class HiddenMessageTask implements Runnable {
         if (client.state == ClientState.BOUND) {
 
             int itarif = Integer.parseInt(tarif);
-            String tarif_optimized = "5";
-
 
             SmppSession session = client.getSession();
             Long msisdn = mDBConnection.getClient(sml.getId_client()).getAddrs();
@@ -137,15 +141,16 @@ public class HiddenMessageTask implements Runnable {
                 sm.calculateAndSetCommandLength();
                 if (!session.isClosed() && !session.isUnbinding()) {
                     SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(client.timeRespond));
-                    if (resp.getCommandStatus() != 0) {
-                        sml.setErr_code("" + resp.getCommandStatus());
-                        return false;
-                    } else {
-//                        itarif = itarif - 5;
-                        sml.setTransaction_id(tarif);   //""+itarif
-//                        if (itarif > 0) return send_core(sml, "" + itarif);
-//                        else
+                    if (resp.getCommandStatus() == 0) {
                         return true;
+                    } else {
+                        itarif = itarif - 5;
+                        sml.setTransaction_id("" + itarif);
+                        if (itarif > 0) return send_core(sml, "" + itarif);
+                        else {
+                            sml.setErr_code("" + resp.getCommandStatus());
+                            return false;
+                        }
                     }
                 } else return false;
             } catch (SmppTimeoutException | SmppChannelException

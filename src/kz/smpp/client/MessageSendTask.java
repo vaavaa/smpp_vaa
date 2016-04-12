@@ -56,8 +56,12 @@ public class MessageSendTask implements Runnable {
 
                         log.debug("Send SM");
 
+                        single_sm.setStatus(-1);
+                        mDBConnection.UpdateSMSLine(single_sm);
                         //Указываем сразу ошибку отправки на случай неконтролируемого сбоя
                         if (!session.isClosed() && !session.isUnbinding()) {
+                            ;
+
                             SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(client.timeRespond));
 
 
@@ -72,9 +76,8 @@ public class MessageSendTask implements Runnable {
                         }
                     } catch (SmppTimeoutException | SmppChannelException
                             | UnrecoverablePduException | InterruptedException | RecoverablePduException ex) {
+                        if (client.timeRespond < 60) client.timeRespond = client.timeRespond + 1;
                         log.debug("System's error, sending failure ", ex);
-                        single_sm.setStatus(-1);
-                        mDBConnection.UpdateSMSLine(single_sm);
                     }
                 }
             }

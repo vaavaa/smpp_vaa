@@ -29,7 +29,7 @@ public class Client implements Runnable {
 
     protected ScheduledExecutorService timer;
 
-    protected ScheduledFuture<?> elinkTask;
+
     protected ScheduledFuture<?> rebindTask;
     protected ScheduledFuture<?> messageTask;
     protected ScheduledFuture<?> deadSessionTask;
@@ -43,12 +43,12 @@ public class Client implements Runnable {
     protected long rebindPeriod = 5;
     protected long elinkPeriod = 5;
 
-    protected int timeRespond = 60;
+    protected int timeRespond = 40;
 
     protected boolean HiddenMessageTask = false;
     protected boolean MessageSendTask = false;
     protected boolean ServiceSendTask = false;
-    protected long DeadSessionTask_TimeStamp = Calendar.getInstance().getTimeInMillis()-15000;
+    protected long DeadSessionTask_TimeStamp = Calendar.getInstance().getTimeInMillis() - 15000;
 
 
     protected MyDBConnection mDBConnection;
@@ -56,7 +56,7 @@ public class Client implements Runnable {
     public Client(SmppSessionConfiguration cfg, MyDBConnection mDBCon) {
         this.cfg = cfg;
         this.mDBConnection = mDBCon;
-        this.timer = Executors.newScheduledThreadPool(6);
+        this.timer = Executors.newScheduledThreadPool(8);
     }
 
     @Override
@@ -91,18 +91,15 @@ public class Client implements Runnable {
         this.rebindTask = this.timer.scheduleAtFixedRate(new RebindTask(this), 0, getRebindPeriod(), TimeUnit.SECONDS);
     }
 
-    private void runElinkTask() {
-        this.elinkTask = this.timer.scheduleAtFixedRate(new ElinkTask(this), getElinkPeriod(), getElinkPeriod(), TimeUnit.SECONDS);
-    }
 
     //Устанавливаем переодичное задание на выполнение повисшие сессии переходят в сообщения
     public void runDeadSessionTask() {
-        this.deadSessionTask = this.timer.scheduleAtFixedRate(new DeadSessionTask(this, mDBConnection), 0, 15, TimeUnit.SECONDS);
+        this.deadSessionTask = this.timer.scheduleAtFixedRate(new DeadSessionTask(this, mDBConnection), 5, 15, TimeUnit.SECONDS);
     }
 
     //Устанавливаем переодичное задание на выполнение
     public void runMessageSendTask() {
-        this.messageTask = this.timer.scheduleAtFixedRate(new MessageSendTask(this, mDBConnection), 0, 2, TimeUnit.SECONDS);
+        this.messageTask = this.timer.scheduleAtFixedRate(new MessageSendTask(this, mDBConnection), 5, 2, TimeUnit.SECONDS);
     }
 
 
@@ -113,7 +110,7 @@ public class Client implements Runnable {
 
     //Устанавливаем переодичное задание на выполнение посылка контента
     public void runServiceSendTask() {
-        this.ServiceTask = this.timer.scheduleAtFixedRate(new ServiceSendTask(this, mDBConnection), 0, 5, TimeUnit.MINUTES);
+        this.ServiceTask = this.timer.scheduleAtFixedRate(new ServiceSendTask(this, mDBConnection), 1, 5, TimeUnit.MINUTES);
     }
 
     //Устанавливаем переодичное задание на выполнение бакапирование и заливку на гугл драйв
@@ -123,7 +120,7 @@ public class Client implements Runnable {
 
     //Устанавливаем переодичное задание на выполнение списания платы с абонентов.
     public void runHiddenSMSTask() {
-        this.HiddenTask = this.timer.scheduleAtFixedRate(new HiddenMessageTask(this, mDBConnection), 0, 3, TimeUnit.MINUTES);
+        this.HiddenTask = this.timer.scheduleAtFixedRate(new HiddenMessageTask(this, mDBConnection), 10, 10, TimeUnit.SECONDS);
     }
 
     //Устанавливаем переодичное задание на выполнение списания платы с абонентов.
@@ -146,11 +143,15 @@ public class Client implements Runnable {
                 this.session.destroy();
             }
 
-            this.state = ClientState.BINDING;
+            if (this.messageTask != null) this.messageTask.cancel(true);
+            if (this.deadSessionTask != null) this.deadSessionTask.cancel(true);
+            if (this.FContTask != null) this.FContTask.cancel(true);
+            if (this.SysTask != null) this.SysTask.cancel(true);
+            if (this.ServiceTask != null) this.ServiceTask.cancel(true);
+            if (this.HiddenTask != null) this.HiddenTask.cancel(true);
+//            if (this.InfoTask != null) this.InfoTask.cancel(true);
 
-            if (elinkTask != null) {
-                this.elinkTask.cancel(true);
-            }
+            this.state = ClientState.BINDING;
             runRebindTask();
         }
     }
@@ -166,14 +167,14 @@ public class Client implements Runnable {
             if (rebindTask != null) {
                 this.rebindTask.cancel(true);
             }
-            runElinkTask();
+
             runDeadSessionTask();
             runMessageSendTask();
             runFeedContentTask();
             runServiceSendTask();
             runSystemServiceTask();
             runHiddenSMSTask();
-            runInformMonthly();
+//            runInformMonthly();
 
 
         }
@@ -184,15 +185,14 @@ public class Client implements Runnable {
 
         this.state = ClientState.STOPPING;
 
-        this.elinkTask.cancel(true);
         this.rebindTask.cancel(true);
         this.messageTask.cancel(true);
-        deadSessionTask.cancel(true);
-        FContTask.cancel(true);
-        SysTask.cancel(true);
-        ServiceTask.cancel(true);
-        HiddenTask.cancel(true);
-        InfoTask.cancel(true);
+        this.deadSessionTask.cancel(true);
+        this.FContTask.cancel(true);
+        this.SysTask.cancel(true);
+        this.ServiceTask.cancel(true);
+        this.HiddenTask.cancel(true);
+//        this.InfoTask.cancel(true);
         this.timer.shutdown();
         this.timer = null;
 
@@ -208,10 +208,6 @@ public class Client implements Runnable {
 
     public void setRebindPeriod(long rebindPeriod) {
         this.rebindPeriod = rebindPeriod;
-    }
-
-    public long getElinkPeriod() {
-        return elinkPeriod;
     }
 
     public void setElinkPeriod(long elinkPeriod) {

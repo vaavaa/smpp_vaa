@@ -37,10 +37,10 @@ public class ServiceSendTask implements Runnable {
         int currentMinutes = cal.get(Calendar.MINUTE);
         if (!client.ServiceSendTask) {
             client.ServiceSendTask = true;
+            if ((currentHour >= 8 && currentMinutes > 20) && currentHour < 17) metcast();
             if (currentHour >= 9 && currentHour < 18) Horoscope();
             if (currentHour >= 9 && currentHour < 20) Rate();
             if (currentHour >= 13 && currentHour < 21) Anecdote();
-            if ((currentHour >= 8 && currentMinutes > 30) && currentHour < 17) metcast();
             client.ServiceSendTask = false;
         }
     }
@@ -126,8 +126,10 @@ public class ServiceSendTask implements Runnable {
 
     private void ServiceAction(int TypeContent) {
         SmppSession session = client.getSession();
+        String currdate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
         List<SmsLine> SMs = mDBConnection.getSMSLine(TypeContent);
         for (SmsLine sml : SMs) {
+            if (mDBConnection.lineCountO(currdate) > 2) return;
             if (client.state == ClientState.BOUND) {
                 try {
 
@@ -166,6 +168,7 @@ public class ServiceSendTask implements Runnable {
                     //фиксируем сбой отправки
                     sml.setStatus(-1);
                     mDBConnection.UpdateSMSLine(sml);
+                    if (client.timeRespond < 60) client.timeRespond = client.timeRespond+ 1;
                     log.debug("System's error, sending failure ", ex);
                 }
             }

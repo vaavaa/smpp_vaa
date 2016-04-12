@@ -20,25 +20,18 @@ public class SystemServiceTask implements  Runnable {
         Calendar cal = Calendar.getInstance();
         int currentHour = cal.get(Calendar.HOUR_OF_DAY);
         int dayint = cal.get(Calendar.DAY_OF_WEEK);
-        if (currentHour > 4 && currentHour <= 5) {
-            mDBConnection.backupData("C:\\xampp\\mysql\\bin\\mysqldump.exe", "localhost", "3306", "root", "", "smpp_clients", "C:\\SMPP\\backups\\backup.sql");
-            log.debug("BackUp should be created...");
-        }
-        if (currentHour >8 && currentHour <= 23) {
-            mDBConnection.backupData("C:\\xampp\\mysql\\bin\\mysqldump.exe", "localhost", "3306", "root", "", "smpp_clients", "C:\\SMPP\\backups\\backup.sql");
-            log.debug("BackUp should be created...");
-        }
-        if (dayint == Calendar.WEDNESDAY) {
-            //помечаем клиентов как жизнеспособных что бы попробовать снять денег в WEDNESDAY день недели.
-            if (currentHour > 2 && currentHour <= 4) {
-                mDBConnection.MarkClientsActive();
-            }
-        }else {
-            //помечаем клиентов как неплатежеспособных
-            if (currentHour > 2 && currentHour <= 4) {
-                mDBConnection.MarkClientsInactive();
-            }
-        }
+//        if (currentHour >= 1 && currentHour <= 5) {
+//            mDBConnection.backupData("C:\\xampp\\mysql\\bin\\mysqldump.exe", "localhost", "3306", "root", "", "smpp_clients", "C:\\SMPP\\backups\\backup.sql");
+//            log.debug("BackUp should be created...");
+//        }
+//        if (currentHour >8 && currentHour <= 23) {
+//            mDBConnection.backupData("C:\\xampp\\mysql\\bin\\mysqldump.exe", "localhost", "3306", "root", "", "smpp_clients", "C:\\SMPP\\backups\\backup.sql");
+//            log.debug("BackUp should be created...");
+//        }
+//            //помечаем клиентов как неплатежеспособных
+//            if (currentHour > 2 && currentHour <= 4) {
+//                mDBConnection.MarkClientsInactive();
+//            }
 
 	}
 }
