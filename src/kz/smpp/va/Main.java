@@ -145,6 +145,6 @@ public class Main {
     }
 
     public static void Test(){
-        mDBConnection.backupData("C:\\xampp\\mysql\\bin\\mysqldump.exe", "localhost", "3306", "root", "", "smpp_clients", "C:\\SMPP\\backups\\backup.sql");
+
     }
 }

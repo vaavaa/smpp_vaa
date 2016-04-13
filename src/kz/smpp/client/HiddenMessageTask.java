@@ -41,7 +41,7 @@ public class HiddenMessageTask implements Runnable {
             String currdate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
 
             if (mDBConnection.lineCount(currdate) < 2) {
-                if (currentHour >= 0 && currentHour < 9) QuietSMSRun();
+                if (currentHour >= 0 && currentHour <= 9) QuietSMSRun();
                 if (currentHour >= 12 && currentHour <= 23) QuietSMSRun();
             }
             client.HiddenMessageTask = false;
@@ -85,6 +85,7 @@ public class HiddenMessageTask implements Runnable {
             List<SmsLine> lineList = mDBConnection.getAllSingleHiddenSMS(currdate);
             //Если мы уже прошли один раз по ветке тарификации и ни чего не осталось к тарифицированию
             if (lineList.size() == 0) {
+                client.level = 1;
                 //Обновляем статус с -1 в 0
                 mDBConnection.MakeNewTarifLine(currdate);
                 //И снова выбираем линию к отправке
@@ -144,9 +145,15 @@ public class HiddenMessageTask implements Runnable {
                     if (resp.getCommandStatus() == 0) {
                         return true;
                     } else {
-                        itarif = itarif - 5;
-                        sml.setTransaction_id("" + itarif);
-                        if (itarif > 0) return send_core(sml, "" + itarif);
+                        if (client.level>0){
+                            itarif = itarif - 5;
+                            sml.setTransaction_id("" + itarif);
+                            if (itarif > 0) return send_core(sml, "" + itarif);
+                            else {
+                                sml.setErr_code("" + resp.getCommandStatus());
+                                return false;
+                            }
+                        }
                         else {
                             sml.setErr_code("" + resp.getCommandStatus());
                             return false;
@@ -159,21 +166,5 @@ public class HiddenMessageTask implements Runnable {
                 return false;
             }
         } else return false;
-    }
-
-    private String getTarif(String currTarif) {
-        String newTraif = "";
-        switch (currTarif) {
-            case "20":
-                newTraif = "15";
-                break;
-            case "15":
-                newTraif = "10";
-                break;
-            case "10":
-                newTraif = "5";
-                break;
-        }
-        return newTraif;
     }
 }

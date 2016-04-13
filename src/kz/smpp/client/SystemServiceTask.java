@@ -4,7 +4,9 @@ import kz.smpp.mysql.MyDBConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 
 public class SystemServiceTask implements  Runnable {
 
@@ -20,18 +22,10 @@ public class SystemServiceTask implements  Runnable {
         Calendar cal = Calendar.getInstance();
         int currentHour = cal.get(Calendar.HOUR_OF_DAY);
         int dayint = cal.get(Calendar.DAY_OF_WEEK);
-//        if (currentHour >= 1 && currentHour <= 5) {
-//            mDBConnection.backupData("C:\\xampp\\mysql\\bin\\mysqldump.exe", "localhost", "3306", "root", "", "smpp_clients", "C:\\SMPP\\backups\\backup.sql");
-//            log.debug("BackUp should be created...");
-//        }
-//        if (currentHour >8 && currentHour <= 23) {
-//            mDBConnection.backupData("C:\\xampp\\mysql\\bin\\mysqldump.exe", "localhost", "3306", "root", "", "smpp_clients", "C:\\SMPP\\backups\\backup.sql");
-//            log.debug("BackUp should be created...");
-//        }
-//            //помечаем клиентов как неплатежеспособных
-//            if (currentHour > 2 && currentHour <= 4) {
-//                mDBConnection.MarkClientsInactive();
-//            }
-
+        if (currentHour >= 8 && currentHour <= 23) {
+            String currdate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+            mDBConnection.backupData(""+currentHour, currdate);
+            log.debug("BackUp is done!");
+        }
 	}
 }

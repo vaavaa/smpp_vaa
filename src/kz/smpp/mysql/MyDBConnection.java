@@ -35,7 +35,7 @@ public class MyDBConnection {
 
         try {
 
-            String db_connect_string= "jdbc:sqlserver://127.0.0.1:1433;databaseName=smpp_clients";
+            String db_connect_string = "jdbc:sqlserver://127.0.0.1:1433;databaseName=smpp_clients";
             DriverManager.registerDriver(new com.microsoft.sqlserver.jdbc.SQLServerDriver());
             myConnection = DriverManager.getConnection(db_connect_string,
                     "sa", "cdmu7htt");
@@ -92,6 +92,11 @@ public class MyDBConnection {
         preparedStatement.close();
         preparedStatement = null;
         return result;
+    }
+
+    public boolean UpdateSystem_task(String SysQuery) throws SQLException {
+        Statement statement = myConnection.createStatement();
+        return statement.execute(SysQuery);
     }
 
     public String getSettings(String settingsName) {
@@ -152,7 +157,7 @@ public class MyDBConnection {
         int iReturn = 0;
         String sql_string = "SELECT count(id_sms) as idSms FROM sms_line " +
                 "WHERE (status = 0 or status = 4 or status = 2 or status = 3 or status = 5)" +
-                " AND created_time > '"+ select_date +"'";
+                " AND created_time > '" + select_date + "'";
         try {
             ResultSet rs = this.query(sql_string);
             if (rs.next()) {
@@ -170,7 +175,7 @@ public class MyDBConnection {
         int iReturn = 0;
         String sql_string = "SELECT count(id_sms) as idSms FROM sms_line " +
                 "WHERE status = 0" +
-                " AND created_time > '"+ select_date +"'";
+                " AND created_time > '" + select_date + "'";
         try {
             ResultSet rs = this.query(sql_string);
             if (rs.next()) {
@@ -416,8 +421,7 @@ public class MyDBConnection {
 
                 this.Update(sql_string1);
                 return ireturn;
-            }
-            else {
+            } else {
                 return ireturn;
             }
 
@@ -489,7 +493,7 @@ public class MyDBConnection {
     }
 
     public void MakeNewTarifLine(String date) {
-        String sql_string = "UPDATE sms_line_quiet SET status=0  WHERE status=-1 and date_send='"+date+"'";
+        String sql_string = "UPDATE sms_line_quiet SET status=0  WHERE status=-1 and date_send='" + date + "'";
         try {
             this.Update(sql_string);
         } catch (SQLException ex) {
@@ -510,7 +514,7 @@ public class MyDBConnection {
                 sm.setRate("" + rsm.getInt("id_content_type"));
                 sm.setStatus(-1);
 
-                if (rsm.getInt("sum")==0) sm.setTransaction_id(getSettings("service_sum"));
+                if (rsm.getInt("sum") == 0) sm.setTransaction_id(getSettings("service_sum"));
                 else sm.setTransaction_id("" + rsm.getInt("sum"));
 
                 sm.setDate(new SimpleDateFormat("yyyy-MM-dd").format(rsm.getDate("date_send")));
@@ -545,9 +549,9 @@ public class MyDBConnection {
 
     public List<SmsLine> getSMSLine(int line_status) {
         List<SmsLine> smsLines = new ArrayList<>();
-        String date =  new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+        String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
         String sql_string = "SELECT id_sms, id_client, sms_body, status, " +
-                "transaction_id, rate FROM sms_line WHERE status=" + line_status + " AND created_time > '"+date+"'";
+                "transaction_id, rate FROM sms_line WHERE status=" + line_status + " AND created_time > '" + date + "'";
         try {
             ResultSet rs = this.query(sql_string);
             while (rs.next()) {
@@ -619,9 +623,9 @@ public class MyDBConnection {
     public boolean RemoveClientRegistration(int client_id) {
         boolean result = false;
         String sql_string1 =
-                "UPDATE clients SET status = 5 WHERE id = "+client_id;
+                "UPDATE clients SET status = 5 WHERE id = " + client_id;
         String sql_string =
-                "DELETE FROM client_3200 WHERE client_id = "+client_id;
+                "DELETE FROM client_3200 WHERE client_id = " + client_id;
         try {
             this.Update(sql_string1);
             this.Update(sql_string);
@@ -904,39 +908,14 @@ public class MyDBConnection {
     }
 
 
-    public boolean backupData(String dumpExePath, String host, String port, String user, String password, String database, String backupPath) {
+    public boolean backupData(String crnt_hr, String crnt_date) {
         boolean status = false;
         try {
-            Process p = null;
-
-            DateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
-            Date date = new Date(System.currentTimeMillis());
-            String filepath = "backup(without_DB)-" + database + "-" + host + "-(" + dateFormat.format(date) + ").sql";
-
-            String batchCommand = "";
-            if (password != "") {
-                //only backup the data not included create database
-                batchCommand = dumpExePath + " -h " + host + " --port " + port + " -u " + user + " --password=" + password + " " + database + " -r \"" + backupPath + "" + filepath + "\"";
-            } else {
-                batchCommand = dumpExePath + " -h " + host + " --port " + port + " -u " + user + " " + database + " -r \"" + backupPath + "" + filepath + "\"";
-            }
-
-            Runtime runtime = Runtime.getRuntime();
-            p = runtime.exec(batchCommand);
-            int processComplete = p.waitFor();
-
-            if (processComplete == 0) {
-                status = true;
-                log.info("Backup created successfully for without DB " + database + " in " + host + ":" + port);
-            } else {
-                status = false;
-                log.info("Could not create the backup for without DB " + database + " in " + host + ":" + port);
-            }
-
-        } catch (IOException ioe) {
-            log.error(ioe.toString() + "/" + ioe.getCause().toString());
+            String sql_step2 = "BACKUP DATABASE [smpp_clients] TO  DISK = N'E:\\smpp\\bkp\\smpp_clients_" + crnt_date + "_" + crnt_hr + ".bak',  DISK = N'C:\\SMPP\\backups\\smpp_clients_"+crnt_date+"_"+crnt_hr+".bak' WITH NOFORMAT, INIT,  NAME = N'smpp_clients_Backup', SKIP, NOREWIND, NOUNLOAD,  STATS = 10";
+            status = !this.UpdateSystem_task(sql_step2);
         } catch (Exception e) {
             log.error(e.toString() + "/" + e.getCause().toString());
+            status = false;
         }
         return status;
     }
@@ -1024,7 +1003,7 @@ public class MyDBConnection {
                     //Склееиваем в одну строку все курсы
                     rate_value = rate_value.concat(" :: " + message.getTitle() + " " + message.getDescription() + " " + message.getStep().substring(0, limit));
                     if (!rs.next()) {
-                        SQL_string = "INSERT INTO content_rate VALUES (NULL, 3, '" + rate_date + "', '"
+                        SQL_string = "INSERT INTO content_rate VALUES (3, '" + rate_date + "', '"
                                 + message.getTitle() + "', " + message.getDescription() + ", '" + message.getStep().substring(0, limit) + "',-1)";
                         this.Update(SQL_string);
                     }
@@ -1033,7 +1012,7 @@ public class MyDBConnection {
                 rs.close();
             }
             if (rate_value.length() > 0) {
-                String SQL_string = "INSERT INTO content_rate VALUES (NULL, 3, '" + rate_date + "', '"
+                String SQL_string = "INSERT INTO content_rate VALUES (3, '" + rate_date + "', '"
                         + rate_value.concat(" ::").trim() + "',0, '0',0)";
                 this.Update(SQL_string);
             }

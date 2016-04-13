@@ -49,7 +49,7 @@ public class Client implements Runnable {
     protected boolean MessageSendTask = false;
     protected boolean ServiceSendTask = false;
     protected long DeadSessionTask_TimeStamp = Calendar.getInstance().getTimeInMillis() - 15000;
-
+    protected  int level = 0;
 
     protected MyDBConnection mDBConnection;
 
@@ -67,7 +67,7 @@ public class Client implements Runnable {
 
         while (this.state != ClientState.STOPPING) {
             try {
-                TimeUnit.MILLISECONDS.sleep(10);
+                TimeUnit.MILLISECONDS.sleep(timeRespond);
             } catch (InterruptedException ex) {
                 /* */
             }
