@@ -37,7 +37,6 @@ public class DeadSessionTask implements Runnable {
             client.DeadSessionTask_TimeStamp = Calendar.getInstance().getTimeInMillis();
         }
 
-
 //        if (client.state == ClientState.BOUND) {
 //            SmppSession session = client.getSession();
 //            List<SmsLine> SMs = mDBConnection.getClientsOperator();

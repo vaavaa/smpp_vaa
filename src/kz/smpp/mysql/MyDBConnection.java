@@ -189,6 +189,24 @@ public class MyDBConnection {
         return iReturn;
     }
 
+    public int lineCountRequest(String select_date, int ServiceCode) {
+        int iReturn = 0;
+        String sql_string = "SELECT count(id_sms) as idSms FROM sms_line " +
+                "WHERE status = " + ServiceCode +
+                " AND created_time > '" + select_date + "'";
+        try {
+            ResultSet rs = this.query(sql_string);
+            if (rs.next()) {
+                iReturn = rs.getInt("idSms");
+            }
+            rs.close();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            iReturn = 10;
+        }
+        return iReturn;
+    }
+
     public client getClient(long msisdn) {
         client l_client = new client();
         String sql_string = "SELECT * FROM clients WHERE msisdn = " + msisdn;

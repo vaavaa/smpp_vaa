@@ -63,18 +63,24 @@ public class ServiceSendTask implements Runnable {
             // Создаем очередь для отправки
             String an_value = mDBConnection.getHoroscopeFromDate(date);
             //У нас 4 контент для гороскопа
-            RunSMSSend(4, an_value);
-            ServiceAction(4);
+            if (mDBConnection.lineCountRequest(date, 5) == 0) {
+
+                RunSMSSend(4, an_value);
+                ServiceAction(4);
+            }
         }
     }
 
     private void Rate() {
         if (client.state == ClientState.BOUND) {
             // Создаем очередь для отправки
+            String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
             String an_value = mDBConnection.getRateFromDate(new Date());
             //У нас третий контент для rate
-            RunSMSSend(3, an_value);
-            ServiceAction(3);
+            if (mDBConnection.lineCountRequest(date, 5) == 0) {
+                RunSMSSend(3, an_value);
+                ServiceAction(3);
+            }
         }
     }
 
@@ -84,8 +90,10 @@ public class ServiceSendTask implements Runnable {
             // Создаем очередь для отправки
             String an_value = mDBConnection.getAnecdoteFromDate(date);
             //У нас второй контент для rate
-            RunSMSSend(2, an_value);
-            ServiceAction(2);
+            if (mDBConnection.lineCountRequest(date, 5) == 0) {
+                RunSMSSend(2, an_value);
+                ServiceAction(2);
+            }
         }
     }
 
@@ -168,7 +176,7 @@ public class ServiceSendTask implements Runnable {
                     //фиксируем сбой отправки
                     sml.setStatus(-1);
                     mDBConnection.UpdateSMSLine(sml);
-                    if (client.timeRespond < 60) client.timeRespond = client.timeRespond+ 1;
+                    if (client.timeRespond < 60) client.timeRespond = client.timeRespond + 1;
                     log.debug("System's error, sending failure ", ex);
                 }
             }

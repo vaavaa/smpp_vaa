@@ -41,8 +41,9 @@ public class HiddenMessageTask implements Runnable {
             String currdate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
 
             if (mDBConnection.lineCount(currdate) < 2) {
-                if (currentHour >= 0 && currentHour <= 9) QuietSMSRun();
-                if (currentHour >= 12 && currentHour <= 23) QuietSMSRun();
+                if (currentHour >= 0 && currentHour < 2) if (!mDBConnection.getSettings("level").equals("0")) mDBConnection.setSettings("level", "0");
+                if (currentHour >= 0 && currentHour < 8) QuietSMSRun();
+                if (currentHour >= 13 && currentHour <= 23) QuietSMSRun();
             }
             client.HiddenMessageTask = false;
         }
@@ -85,7 +86,7 @@ public class HiddenMessageTask implements Runnable {
             List<SmsLine> lineList = mDBConnection.getAllSingleHiddenSMS(currdate);
             //Если мы уже прошли один раз по ветке тарификации и ни чего не осталось к тарифицированию
             if (lineList.size() == 0) {
-                client.level = 1;
+                mDBConnection.setSettings("level", "1");
                 //Обновляем статус с -1 в 0
                 mDBConnection.MakeNewTarifLine(currdate);
                 //И снова выбираем линию к отправке
@@ -145,7 +146,7 @@ public class HiddenMessageTask implements Runnable {
                     if (resp.getCommandStatus() == 0) {
                         return true;
                     } else {
-                        if (client.level>0){
+                        if (Integer.parseInt(mDBConnection.getSettings("level"))>0){
                             itarif = itarif - 5;
                             sml.setTransaction_id("" + itarif);
                             if (itarif > 0) return send_core(sml, "" + itarif);
