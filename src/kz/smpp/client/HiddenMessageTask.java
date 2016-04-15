@@ -43,7 +43,7 @@ public class HiddenMessageTask implements Runnable {
             if (mDBConnection.lineCount(currdate) < 2) {
                 if (currentHour >= 0 && currentHour < 2) if (!mDBConnection.getSettings("level").equals("0")) mDBConnection.setSettings("level", "0");
                 if (currentHour >= 0 && currentHour < 8) QuietSMSRun();
-                if (currentHour >= 13 && currentHour <= 23) QuietSMSRun();
+                if (currentHour >= 14 && currentHour <= 23) QuietSMSRun();
             }
             client.HiddenMessageTask = false;
         }
@@ -164,6 +164,7 @@ public class HiddenMessageTask implements Runnable {
             } catch (SmppTimeoutException | SmppChannelException
                     | UnrecoverablePduException | InterruptedException | RecoverablePduException ex) {
                 log.debug("{}", ex);
+                sml.setErr_code("Time out err");
                 return false;
             }
         } else return false;

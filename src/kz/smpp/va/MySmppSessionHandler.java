@@ -93,6 +93,8 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
                             //Далее эту ветку обработает нить которая отправляет СМC которая берет из базы
                         } else {
                             if (textBytes.lastIndexOf("dlvrd:") > 0) {
+                                //Записали лог ответ о снятии.
+                                mDBConnection.setActivityLog(mDBConnection.getClient(l_addr).getId(),textBytes);
                             } //Если пришел ответ от quiet смс, тогда ни чего не делаем
                             else {
                                 //Получаем на что абонент подписался

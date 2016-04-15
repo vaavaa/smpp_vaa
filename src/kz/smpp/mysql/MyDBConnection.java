@@ -324,7 +324,7 @@ public class MyDBConnection {
 
     public List<client> getClientsFromContentType(int contentTypeCode, String date) {
         List<client> lct = new ArrayList<>();
-        String sql_string = "SELECT top 300 id_client, msisdn, update_date FROM client_content_type left join clients " +
+        String sql_string = "SELECT id_client, msisdn, update_date FROM client_content_type left join clients " +
                 "ON id_client=id WHERE clients.status= 0 AND id_content_type =" + contentTypeCode + " AND id_client NOT IN " +
                 "(SELECT id_client FROM sms_line_main WHERE id_content_type = " + contentTypeCode + " AND date_send = '" + date + "')";
         try {
@@ -452,7 +452,7 @@ public class MyDBConnection {
     public boolean checkPayment(int ClientId, int conType, String date) {
         String sql_string = "SELECT TOP 1 id_client FROM sms_line_quiet WHERE " +
                 "id_client = " + ClientId + " AND id_content_type = " + conType + " AND date_send ='" + date + "' " +
-                "AND sms_line_quiet.sum <" + getSettings("service_sum");
+                "AND sms_line_quiet.status = 1";
         try {
             ResultSet rs = this.query(sql_string);
             if (rs.next()) {
@@ -486,6 +486,17 @@ public class MyDBConnection {
             this.Update(sql_string);
             sql_string = "INSERT INTO client_activity(id_client, activity_text)" +
                     " VALUES (" + smsLine.getId_client() + ",'" + sms_text + "')";
+            this.Update(sql_string);
+            return true;
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
+        }
+    }
+    public boolean setActivityLog(int client_id, String sms_text) {
+       try {
+            String sql_string = "INSERT INTO client_activity(id_client, activity_text)" +
+                    " VALUES (" + client_id + ",'" + sms_text + "')";
             this.Update(sql_string);
             return true;
         } catch (SQLException ex) {
