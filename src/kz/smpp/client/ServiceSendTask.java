@@ -37,10 +37,10 @@ public class ServiceSendTask implements Runnable {
         int currentMinutes = cal.get(Calendar.MINUTE);
         if (!client.ServiceSendTask) {
             client.ServiceSendTask = true;
-            if ((currentHour >= 8 && currentMinutes > 20) && currentHour < 18) metcast();
-            if (currentHour >= 9 && currentHour < 19) Horoscope();
-            if (currentHour >= 9 && currentHour < 20) Rate();
-            if (currentHour >= 13 && currentHour < 21) Anecdote();
+//            if ((currentHour >= 8 && currentMinutes > 20) && currentHour < 18) metcast();
+//            if (currentHour >= 9 && currentHour < 19) Horoscope();
+//            if (currentHour >= 9 && currentHour < 20) Rate();
+//            if (currentHour >= 13 && currentHour < 21) Anecdote();
             client.ServiceSendTask = false;
         }
     }
@@ -131,7 +131,7 @@ public class ServiceSendTask implements Runnable {
                         mDBConnection.setSingleSMS(sm);
                     }
                 }
-
+                mDBConnection.setLastActivityTime();
             }
         }
     }

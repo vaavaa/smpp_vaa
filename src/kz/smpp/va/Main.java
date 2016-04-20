@@ -9,6 +9,7 @@ import com.cloudhopper.smpp.pdu.SubmitSm;
 import com.cloudhopper.smpp.pdu.SubmitSmResp;
 import com.cloudhopper.smpp.type.LoggingOptions;
 import com.cloudhopper.smpp.type.SmppInvalidArgumentException;
+import com.sun.deploy.Environment;
 import kz.smpp.client.Client;
 import kz.smpp.mysql.MyDBConnection;
 import kz.smpp.jsoup.ParseHtml;
@@ -52,14 +53,16 @@ public class Main {
         }
     }
 
-    private static boolean run_switch(String command){
+    private static boolean run_switch(String command) {
 
-        switch(command)
+        switch (command)
 
         {
             case "exit":
                 //Вышли
-                return false;
+                System.exit(0);
+                return true;
+
             case "start":
 
                 start_3200();
@@ -71,6 +74,7 @@ public class Main {
                         client.stop();
                         pool.shutdownNow();
                         log.debug("Stopped");
+                        client = null;
                         return true;
                     }
                 }
@@ -111,40 +115,41 @@ public class Main {
     }
 
 
+    public static void start_3200() {
 
-    public static void start_3200(){
+        SmppSessionConfiguration sessionConfig = new SmppSessionConfiguration();
+        sessionConfig.setName("service_3200");
+        sessionConfig.setType(SmppBindType.TRANSCEIVER);
+        sessionConfig.setHost(mDBConnection.getSettings("ipadress"));
+        sessionConfig.setPort(Integer.parseInt(mDBConnection.getSettings("port")));
+        sessionConfig.setSystemId(mDBConnection.getSettings("partner_id"));
+        sessionConfig.setPassword(mDBConnection.getSettings("partner_pws"));
+        sessionConfig.setBindTimeout(80000L);
 
-            SmppSessionConfiguration sessionConfig = new SmppSessionConfiguration();
-            sessionConfig.setName("service_3200");
-            sessionConfig.setType(SmppBindType.TRANSCEIVER);
-            sessionConfig.setHost(mDBConnection.getSettings("ipadress"));
-            sessionConfig.setPort(Integer.parseInt(mDBConnection.getSettings("port")));
-            sessionConfig.setSystemId(mDBConnection.getSettings("partner_id"));
-            sessionConfig.setPassword(mDBConnection.getSettings("partner_pws"));
-            sessionConfig.setBindTimeout(80000L);
+        LoggingOptions loggingOptions = new LoggingOptions();
+        sessionConfig.setLoggingOptions(loggingOptions);
 
-            LoggingOptions loggingOptions = new LoggingOptions();
-            sessionConfig.setLoggingOptions(loggingOptions);
+        client = new Client(sessionConfig, mDBConnection);
+        client.setElinkPeriod(640);
+        client.setSessionHandler(new MySmppSessionHandler(client, mDBConnection));
+        pool = Executors.newFixedThreadPool(2);
+        pool.submit(client);
 
-            client = new Client(sessionConfig, mDBConnection);
-            client.setElinkPeriod(640);
-            client.setSessionHandler(new MySmppSessionHandler(client,mDBConnection));
-            pool = Executors.newFixedThreadPool(2);
-            pool.submit(client);
+        client.start();
 
-            client.start();
-
-            log.debug("Wait to bound");
-            while (client.getSession() == null|| !client.getSession().isBound()) {
-                if (client.getSession() != null) log.debug("Session is {}", client.getSession().isBound());
-                else log.debug("Null session");
-                try {TimeUnit.SECONDS.sleep(1);}
-                catch (InterruptedException ex)
-                {java.util.logging.Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);}
+        log.debug("Wait to bound");
+        while (client.getSession() == null || !client.getSession().isBound()) {
+            if (client.getSession() != null) log.debug("Session is {}", client.getSession().isBound());
+            else log.debug("Null session");
+            try {
+                TimeUnit.SECONDS.sleep(1);
+            } catch (InterruptedException ex) {
+                java.util.logging.Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
             }
+        }
     }
 
-    public static void Test(){
+    public static void Test() {
 
     }
 }

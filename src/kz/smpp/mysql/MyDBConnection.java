@@ -40,10 +40,6 @@ public class MyDBConnection {
             myConnection = DriverManager.getConnection(db_connect_string,
                     "sa", "cdmu7htt");
 
-            //Class.forName("com.mysql.jdbc.Driver");
-            //myConnection = DriverManager.getConnection(
-            //        "jdbc:mysql://127.0.0.1/smpp_clients?characterEncoding=utf8", "root", ""
-            //);
             myConnection.setAutoCommit(false);
         } catch (Exception e) {
             System.out.println("Failed to get connection");
@@ -127,7 +123,7 @@ public class MyDBConnection {
 
     public int getLastId() throws SQLException {
         int result = -1;
-        String lastIdString = "SELECT SCOPE_IDENTITY() as LIID";
+        String lastIdString = "SELECT @@IDENTITY as LIID";
         preparedStatement = myConnection.prepareStatement(lastIdString);
         ResultSet res = preparedStatement.executeQuery();
         if (res.next()) {
@@ -238,7 +234,7 @@ public class MyDBConnection {
                 l_client.setAddrs(msisdn);
                 l_client.setId(rs.getInt("id"));
             } else {
-                sql_string = "INSERT INTO clients VALUES(null," + msisdn + ",0)";
+                sql_string = "INSERT  INTO clients (msisdn, status) VALUES (" + msisdn + ", 0)";
                 this.Update(sql_string);
                 l_client.setId(this.getLastId());
                 l_client.setAddrs(msisdn);
@@ -466,6 +462,29 @@ public class MyDBConnection {
         }
     }
 
+    public boolean setUpdateSingleSMSHidden(SmsLine smsLine){
+        String sql_string = "SELECT id_sms_line FROM sms_line_quiet WHERE " +
+                "id_client = "+smsLine.getId_client() + " AND " +
+                "id_content_type = " + smsLine.getRate() + " AND " +
+                "date_send = '" + smsLine.getDate() + "'";
+        try {
+            ResultSet rs = this.query(sql_string);
+            if (!rs.next()) {
+                setSingleSMSHidden(smsLine);
+                return true;
+            } else {
+                smsLine.setId_sms(rs.getInt("id_sms_line"));
+                UpdateHiddenSMSLine(smsLine);
+                return true;
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
+        }
+
+
+    }
+
     public boolean setSingleSMSHidden(SmsLine smsLine) {
         String sql_string1 = "INSERT INTO sms_line_quiet( id_client, id_content_type, sum, status, date_send)" +
                 " VALUES (" + smsLine.getId_client() + ", " + smsLine.getRate() + ", " + smsLine.getTransaction_id() + ", "
@@ -478,6 +497,24 @@ public class MyDBConnection {
             return false;
         }
     }
+
+    public boolean SetClientType(int id_client, int id_content_type) {
+        String SQLString = "SELECT id_client FROM client_content_type WHERE id_client=" + id_client + " AND id_content_type = " + id_content_type;
+        try {
+            ResultSet rs = this.query(SQLString);
+            if (rs.next()) {
+                return true;
+            } else {
+                String sql_string = "INSERT INTO client_content_type(id_client, id_content_type, status) VALUES (" + id_client + "," + id_content_type + ",0)";
+                this.Update(sql_string);
+                return true;
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
+        }
+    }
+
 
     public boolean setSingleSMS(SmsLine smsLine, String sms_text) {
         String sql_string = "INSERT INTO sms_line(id_client, sms_body, status, transaction_id) " +
@@ -493,8 +530,9 @@ public class MyDBConnection {
             return false;
         }
     }
+
     public boolean setActivityLog(int client_id, String sms_text) {
-       try {
+        try {
             String sql_string = "INSERT INTO client_activity(id_client, activity_text)" +
                     " VALUES (" + client_id + ",'" + sms_text + "')";
             this.Update(sql_string);
@@ -528,6 +566,11 @@ public class MyDBConnection {
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
+    }
+
+    public void setLastActivityTime(){
+        Calendar calendar = Calendar.getInstance();
+        setSettings("LastActivityTime",""+calendar.getTimeInMillis());
     }
 
     public List<SmsLine> getAllSingleHiddenSMS(String date) {
@@ -800,7 +843,6 @@ public class MyDBConnection {
 
     public String SignServiceName(Long msisdn, String sms_text) {
         //Получаем доступные сервисы из настроек
-        AllUtils settings = new AllUtils();
         String[] table_names;
         table_names = new String[Integer.parseInt(this.getSettings("ServicesCount"))];
         String services = this.getSettings("AvailableServices");
@@ -940,7 +982,7 @@ public class MyDBConnection {
     public boolean backupData(String crnt_hr, String crnt_date) {
         boolean status = false;
         try {
-            String sql_step2 = "BACKUP DATABASE [smpp_clients] TO  DISK = N'E:\\smpp\\bkp\\smpp_clients_" + crnt_date + "_" + crnt_hr + ".bak',  DISK = N'C:\\SMPP\\backups\\smpp_clients_"+crnt_date+"_"+crnt_hr+".bak' WITH NOFORMAT, INIT,  NAME = N'smpp_clients_Backup', SKIP, NOREWIND, NOUNLOAD,  STATS = 10";
+            String sql_step2 = "BACKUP DATABASE [smpp_clients] TO  DISK = N'E:\\smpp\\bkp\\smpp_clients_" + crnt_date + "_" + crnt_hr + ".bak',  DISK = N'C:\\SMPP\\backups\\smpp_clients_" + crnt_date + "_" + crnt_hr + ".bak' WITH NOFORMAT, INIT,  NAME = N'smpp_clients_Backup', SKIP, NOREWIND, NOUNLOAD,  STATS = 10";
             status = !this.UpdateSystem_task(sql_step2);
         } catch (Exception e) {
             log.error(e.toString() + "/" + e.getCause().toString());

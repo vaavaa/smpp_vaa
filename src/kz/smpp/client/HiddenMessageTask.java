@@ -40,13 +40,13 @@ public class HiddenMessageTask implements Runnable {
             client.HiddenMessageTask = true;
             String currdate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
 
-            if (mDBConnection.lineCount(currdate) < 2) {
-                if (currentHour >= 0 && currentHour < 2) if (!mDBConnection.getSettings("level").equals("0")) mDBConnection.setSettings("level", "0");
-                if (currentHour >= 0 && currentHour <=8) QuietSMSRun();
-                if (currentHour >= 14 && currentHour <= 16) QuietSMSRun();
-                if (currentHour >= 19 && currentHour <= 23) QuietSMSRun();
-
-            }
+//            if (mDBConnection.lineCount(currdate) < 2) {
+//                if (currentHour >= 0 && currentHour < 2) if (!mDBConnection.getSettings("level").equals("0")) mDBConnection.setSettings("level", "0");
+//                if (currentHour >= 0 && currentHour <=8) QuietSMSRun();
+//                if (currentHour >= 13 && currentHour <= 16) QuietSMSRun();
+//                if (currentHour >= 19 && currentHour <= 23) QuietSMSRun();
+//
+//            }
             client.HiddenMessageTask = false;
         }
     }
@@ -99,6 +99,8 @@ public class HiddenMessageTask implements Runnable {
             for (SmsLine sml : lineList) {
                 //Выходим если линия сообщений заполнилась больше чем на 9 сообщений
                 if (mDBConnection.lineCount(currdate) > 4) return;
+                //Последнее время активности системы
+                mDBConnection.setLastActivityTime();
                 //если тариф стал 0 то более нет смысла опрашивать абонента об оплате, пропускаем нулевой тариф
                 //Создаем лог
                 SmsLine sms = new SmsLine();

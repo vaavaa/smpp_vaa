@@ -34,6 +34,8 @@ public class MessageSendTask implements Runnable {
                 SmppSession session = client.getSession();
                 List<SmsLine> SMs = mDBConnection.getSMSLine(0);
                 for (SmsLine single_sm : SMs) {
+                    //Последнее время активности системы
+                    mDBConnection.setLastActivityTime();
                     try {
                         int SequenceNumber = 1 + (int) (Math.random() * 32000);
                         String client_msisdn = Long.toString(mDBConnection.getClient(single_sm.getId_client()).getAddrs());
