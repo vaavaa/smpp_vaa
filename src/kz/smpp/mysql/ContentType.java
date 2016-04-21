@@ -5,6 +5,15 @@ public class ContentType {
     private String name;
     private String table_name;
     private String name_eng;
+    private String service_code;
+
+    public String getService_code() {
+        return service_code;
+    }
+
+    public void setService_code(String service_code) {
+        this.service_code = service_code;
+    }
 
     public int getId() {
         return id;

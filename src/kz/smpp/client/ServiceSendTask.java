@@ -37,10 +37,10 @@ public class ServiceSendTask implements Runnable {
         int currentMinutes = cal.get(Calendar.MINUTE);
         if (!client.ServiceSendTask) {
             client.ServiceSendTask = true;
-//            if ((currentHour >= 8 && currentMinutes > 20) && currentHour < 18) metcast();
-//            if (currentHour >= 9 && currentHour < 19) Horoscope();
-//            if (currentHour >= 9 && currentHour < 20) Rate();
-//            if (currentHour >= 13 && currentHour < 21) Anecdote();
+            if ((currentHour >= 8 && currentMinutes > 20) && currentHour < 18) metcast();
+            if (currentHour >= 9 && currentHour < 19) Horoscope();
+            if (currentHour >= 9 && currentHour < 20) Rate();
+            if (currentHour >= 13 && currentHour < 21) Anecdote();
             client.ServiceSendTask = false;
         }
     }
@@ -150,8 +150,10 @@ public class ServiceSendTask implements Runnable {
 
                     byte[] textBytes = CharsetUtil.encode(sml.getSms_body(), "UCS-2");
 
+                    String source_address = mDBConnection.getContentTypeById(TypeContent).getService_code();
+
                     SubmitSm sm = new SubmitSm();
-                    sm.setSourceAddress(new Address((byte) 0x00, (byte) 0x01, mDBConnection.getSettings("my_msisdn")));
+                    sm.setSourceAddress(new Address((byte) 0x00, (byte) 0x01, source_address));
                     sm.setDestAddress(new Address((byte) 0x01, (byte) 0x01, client_msisdn));
                     sm.setDataCoding((byte) 8);
                     sm.setEsmClass((byte) 0);

@@ -783,6 +783,7 @@ public class MyDBConnection {
                 ct.setName(rs.getString("name"));
                 ct.setName_eng(rs.getString("name_eng"));
                 ct.setTable_name(rs.getString("table_name"));
+                ct.setService_code(rs.getString("service_code"));
             }
             rs.close();
         } catch (SQLException ex) {
@@ -791,7 +792,24 @@ public class MyDBConnection {
         return ct;
     }
 
-
+    public ContentType getContentTypeById(int service_id) {
+        ContentType ct = new ContentType();
+        String sql_string = "SELECT * FROM content_type WHERE id = '" + service_id + "'";
+        try {
+            ResultSet rs = this.query(sql_string);
+            if (rs.next()) {
+                ct.setId(rs.getInt("id"));
+                ct.setName(rs.getString("name"));
+                ct.setName_eng(rs.getString("name_eng"));
+                ct.setTable_name(rs.getString("table_name"));
+                ct.setService_code(rs.getString("service_code"));
+            }
+            rs.close();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return ct;
+    }
     public boolean RemoveServiceName(Long msisdn) {
         //Удаляем клиента из рассылки
         int idClient = getClient(msisdn).getId();
