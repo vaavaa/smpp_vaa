@@ -82,6 +82,8 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
             //32004 - Анекдот DA4
             //32005 - информация
             switch (textBytes.toLowerCase().trim()) {
+                case "da":
+                    break;
                 case "da1":
                     FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("ascendant_welcome"), textBytes);
                     break;

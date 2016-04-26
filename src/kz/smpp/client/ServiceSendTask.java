@@ -37,7 +37,7 @@ public class ServiceSendTask implements Runnable {
         int currentMinutes = cal.get(Calendar.MINUTE);
         if (!client.ServiceSendTask) {
             client.ServiceSendTask = true;
-            if ((currentHour >= 8 && currentMinutes > 20) && currentHour < 18) metcast();
+            if ((currentHour >= 8 && currentMinutes > 10) && currentHour < 19) metcast();
             if (currentHour >= 9 && currentHour < 19) Horoscope();
             if (currentHour >= 9 && currentHour < 20) Rate();
             if (currentHour >= 13 && currentHour < 21) Anecdote();
@@ -115,18 +115,18 @@ public class ServiceSendTask implements Runnable {
 
                 Calendar c = Calendar.getInstance();
                 c.setTime(new Date());
-                c.add(Calendar.DATE, -3);
+                c.add(Calendar.DATE, -5);
 
                 sm.setDate(date);
                 //рейт для всех одинаков = 0
                 sm.setRate(mDBConnection.getSettings("0"));
                 //Дата подписки больше чем текущая дата - 3 дня - Я просто баран!!!!
                 if (single_clnt.getHelpDate().getTime() > c.getTime().getTime()) {
-                    //Если не попадает под тарификацию
-                    //То сразу создаем сообщение на отправку
+//                  //Если не попадает под тарификацию
+//                  //То сразу создаем сообщение на отправку
                     mDBConnection.setSingleSMS(sm);
                 } else {
-                    //Если у клиента уже есть оплата за день, то отправляем рассылку
+//                    //Если у клиента уже есть оплата за день, то отправляем рассылку
                     if (mDBConnection.checkPayment(single_clnt.getId(), conType, date)) {
                         mDBConnection.setSingleSMS(sm);
                     }

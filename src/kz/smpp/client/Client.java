@@ -110,7 +110,7 @@ public class Client implements Runnable {
 
     //Устанавливаем переодичное задание на выполнение посылка контента
     public void runServiceSendTask() {
-        this.ServiceTask = this.timer.scheduleAtFixedRate(new ServiceSendTask(this, mDBConnection), 1, 2, TimeUnit.MINUTES);
+        this.ServiceTask = this.timer.scheduleAtFixedRate(new ServiceSendTask(this, mDBConnection), 10, 15, TimeUnit.SECONDS);
     }
 
     //Устанавливаем переодичное задание на выполнение бакапирование и заливку на гугл драйв

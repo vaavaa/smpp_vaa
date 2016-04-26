@@ -259,6 +259,7 @@ public class MyDBConnection {
                 ct.setName(rs.getString("name"));
                 ct.setName_eng(rs.getString("name_eng"));
                 ct.setTable_name(rs.getString("table_name"));
+                ct.setService_code(rs.getString("service_code"));
                 lct.add(ct);
             }
             rs.close();
@@ -643,26 +644,29 @@ public class MyDBConnection {
         return smsLines;
     }
 
-    public List<SmsLine> getClientsOperator() {
-        List<SmsLine> smsLines = new ArrayList<>();
-        String sql_string = "SELECT client_id FROM client_3200";
+    public List<client> getClientsOperator() {
+        List<client> clients = new ArrayList<>();
+        String sql_string = "SELECT client_id FROM client_3200 WHERE status =0";
         try {
             ResultSet rs = this.query(sql_string);
             while (rs.next()) {
-                SmsLine sm = new SmsLine();
-                sm.setId_sms(0);
-                sm.setId_client(rs.getInt("client_id"));
-                sm.setStatus(0);
-                sm.setTransaction_id("");
-                sm.setSms_body("START");
-                sm.setRate("0");
-                smsLines.add(sm);
+                client cl = getClient(rs.getLong("client_id"));
+                clients.add(cl);
             }
             rs.close();
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
-        return smsLines;
+        return clients;
+    }
+
+    public void UpdateClientsOperator(client clnt){
+        String sql_string = "UPDATE client_3200 SET status = 1 WHERE client_id= "+clnt.getAddrs();
+        try {
+            this.Update(sql_string);
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
     }
 
     public boolean getFollowUpLine() {

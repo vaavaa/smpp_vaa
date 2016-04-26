@@ -42,7 +42,7 @@ public class MessageSendTask implements Runnable {
 
                         byte[] textBytes = CharsetUtil.encode(single_sm.getSms_body(), "UCS-2");
 
-                        SubmitSm sm = new SubmitSm();
+                        SubmitSm sm = new  SubmitSm();
                         if (single_sm.getTransaction_id().length() > 0)
                             sm.setSourceAddress(new Address((byte) 0x00, (byte) 0x01, mDBConnection.getSettings("my_msisdn").concat("#" + single_sm.getTransaction_id())));
                         else
@@ -62,7 +62,7 @@ public class MessageSendTask implements Runnable {
                         mDBConnection.UpdateSMSLine(single_sm);
                         //Указываем сразу ошибку отправки на случай неконтролируемого сбоя
                         if (!session.isClosed() && !session.isUnbinding()) {
-                            ;
+
 
                             SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(client.timeRespond));
 
