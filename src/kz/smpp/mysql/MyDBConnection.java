@@ -448,7 +448,7 @@ public class MyDBConnection {
 
     public boolean checkPayment(int ClientId, int conType, String date) {
         String sql_string = "SELECT TOP 1 id_client FROM sms_line_quiet WHERE " +
-                "id_client = " + ClientId + " AND id_content_type = " + conType + " AND date_send ='" + date + "' " +
+                "id_client = " + ClientId + " AND id_content_type = " + conType + " AND date_send <='" + date + "' " +
                 "AND sms_line_quiet.status = 1";
         try {
             ResultSet rs = this.query(sql_string);
@@ -518,8 +518,10 @@ public class MyDBConnection {
 
 
     public boolean setSingleSMS(SmsLine smsLine, String sms_text) {
-        String sql_string = "INSERT INTO sms_line(id_client, sms_body, status, transaction_id) " +
-                "VALUES (" + smsLine.getId_client() + ",'" + smsLine.getSms_body() + "'," + smsLine.getStatus() + ",'" + smsLine.getTransaction_id() + "')";
+        String sql_string = "INSERT INTO sms_line(id_client, sms_body, status, transaction_id, id_service) " +
+                "VALUES (" + smsLine.getId_client() + ",'"
+                + smsLine.getSms_body() + "'," + smsLine.getStatus() + ",'" +
+                smsLine.getTransaction_id() + "', "+smsLine.getServiceId()+")";
         try {
             this.Update(sql_string);
             sql_string = "INSERT INTO client_activity(id_client, activity_text)" +
@@ -624,7 +626,7 @@ public class MyDBConnection {
         List<SmsLine> smsLines = new ArrayList<>();
         String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
         String sql_string = "SELECT id_sms, id_client, sms_body, status, " +
-                "transaction_id, rate FROM sms_line WHERE status=" + line_status + " AND created_time > '" + date + "'";
+                "transaction_id, rate, id_service FROM sms_line WHERE status=" + line_status + " AND created_time > '" + date + "'";
         try {
             ResultSet rs = this.query(sql_string);
             while (rs.next()) {
@@ -635,6 +637,7 @@ public class MyDBConnection {
                 sm.setTransaction_id(rs.getString("transaction_id"));
                 sm.setSms_body(rs.getString("sms_body"));
                 sm.setRate(rs.getString("rate"));
+                sm.setServiceId(rs.getInt("id_service"));
                 smsLines.add(sm);
             }
             rs.close();
@@ -644,24 +647,28 @@ public class MyDBConnection {
         return smsLines;
     }
 
-    public List<client> getClientsOperator() {
-        List<client> clients = new ArrayList<>();
-        String sql_string = "SELECT client_id FROM client_3200 WHERE status =0";
+    public List<ActionClient> getClientsOperator() {
+        List<ActionClient> Aclients = new ArrayList<>();
+        String sql_string = "SELECT client_id,status,content_type,action_type_id FROM client_3200 WHERE status =0";
         try {
             ResultSet rs = this.query(sql_string);
             while (rs.next()) {
-                client cl = getClient(rs.getLong("client_id"));
-                clients.add(cl);
+                ActionClient actionClient = new ActionClient();
+                actionClient.setClientId(getClient(rs.getLong("client_id")).getId());
+                actionClient.setActionStatus(rs.getInt("status"));
+                actionClient.setContentType(rs.getInt("content_type"));
+                actionClient.setActionType(rs.getInt("action_type_id"));
+                Aclients.add(actionClient);
             }
             rs.close();
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
-        return clients;
+        return Aclients;
     }
 
-    public void UpdateClientsOperator(client clnt){
-        String sql_string = "UPDATE client_3200 SET status = 1 WHERE client_id= "+clnt.getAddrs();
+    public void UpdateClientsOperator(long address, int err_code){
+        String sql_string = "UPDATE client_3200 SET status = 1, err_code ="+err_code+"  WHERE client_id= "+address;
         try {
             this.Update(sql_string);
         } catch (SQLException ex) {
@@ -696,14 +703,11 @@ public class MyDBConnection {
         return result;
     }
 
-    public boolean RemoveClientRegistration(int client_id) {
+    public boolean RemoveClientContentType(int client_id, int id_type) {
         boolean result = false;
-        String sql_string1 =
-                "UPDATE clients SET status = 5 WHERE id = " + client_id;
         String sql_string =
-                "DELETE FROM client_3200 WHERE client_id = " + client_id;
+                "DELETE FROM client_content_type WHERE id_client = " + client_id + " and id_content_type="+ id_type;
         try {
-            this.Update(sql_string1);
             this.Update(sql_string);
             result = true;
         } catch (SQLException ex) {
@@ -756,25 +760,6 @@ public class MyDBConnection {
             ex.printStackTrace();
         }
         return result;
-    }
-
-    public ContentType getContentType(int idtype) {
-        ContentType ct = new ContentType();
-        String sql_string = "SELECT * FROM content_type WHERE id = " + idtype;
-        try {
-            ResultSet rs = this.query(sql_string);
-            if (rs.next()) {
-                ct.setId(rs.getInt("id"));
-                ct.setName(rs.getString("name"));
-                ct.setName_eng(rs.getString("name_eng"));
-                ct.setTable_name(rs.getString("table_name"));
-
-            }
-            rs.close();
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-        }
-        return ct;
     }
 
     public ContentType getContentType(String table_name) {

@@ -10,6 +10,15 @@ public class SmsLine {
     private String Rate;
     private String Date;
     private String err_code="";
+    private int ServiceId = 0;
+
+    public int getServiceId() {
+        return ServiceId;
+    }
+
+    public void setServiceId(int serviceId) {
+        ServiceId = serviceId;
+    }
 
     public String getErr_code() {
         return err_code;

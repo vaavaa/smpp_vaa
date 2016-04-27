@@ -21,7 +21,7 @@ public class MessageSendTask implements Runnable {
     private MyDBConnection mDBConnection;
 
 
-    public MessageSendTask(Client client, MyDBConnection mDBConn) {
+    public MessageSendTask(Client client) {
         this.client = client;
         mDBConnection = new MyDBConnection();
     }
@@ -37,6 +37,10 @@ public class MessageSendTask implements Runnable {
                     //Последнее время активности системы
                     mDBConnection.setLastActivityTime();
                     try {
+                        String source_address =mDBConnection.getSettings("my_msisdn");
+                        if (single_sm.getServiceId()> 0)
+                            source_address = mDBConnection.getContentTypeById(single_sm.getServiceId()).getService_code();
+
                         int SequenceNumber = 1 + (int) (Math.random() * 32000);
                         String client_msisdn = Long.toString(mDBConnection.getClient(single_sm.getId_client()).getAddrs());
 
@@ -44,9 +48,9 @@ public class MessageSendTask implements Runnable {
 
                         SubmitSm sm = new  SubmitSm();
                         if (single_sm.getTransaction_id().length() > 0)
-                            sm.setSourceAddress(new Address((byte) 0x00, (byte) 0x01, mDBConnection.getSettings("my_msisdn").concat("#" + single_sm.getTransaction_id())));
+                            sm.setSourceAddress(new Address((byte) 0x00, (byte) 0x01, source_address.concat("#" + single_sm.getTransaction_id())));
                         else
-                            sm.setSourceAddress(new Address((byte) 0x00, (byte) 0x01, mDBConnection.getSettings("my_msisdn")));
+                            sm.setSourceAddress(new Address((byte) 0x00, (byte) 0x01, source_address));
                         sm.setDestAddress(new Address((byte) 0x01, (byte) 0x01, client_msisdn));
                         sm.setDataCoding((byte) 8);
                         sm.setEsmClass((byte) 0);

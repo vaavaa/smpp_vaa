@@ -6,7 +6,6 @@ import com.cloudhopper.smpp.SmppSessionConfiguration;
 import com.cloudhopper.smpp.SmppSessionHandler;
 import com.cloudhopper.smpp.impl.DefaultSmppClient;
 import kz.smpp.mysql.MyDBConnection;
-import kz.smpp.mysql.SmsLine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,7 +98,7 @@ public class Client implements Runnable {
 
     //Устанавливаем переодичное задание на выполнение
     public void runMessageSendTask() {
-        this.messageTask = this.timer.scheduleAtFixedRate(new MessageSendTask(this, mDBConnection), 5, 2, TimeUnit.SECONDS);
+        this.messageTask = this.timer.scheduleAtFixedRate(new MessageSendTask(this), 5, 2, TimeUnit.SECONDS);
     }
 
 

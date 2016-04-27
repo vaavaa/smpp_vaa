@@ -10,6 +10,7 @@ import com.cloudhopper.smpp.tlv.TlvConvertException;
 import com.cloudhopper.smpp.type.Address;
 import kz.smpp.client.Client;
 import kz.smpp.client.ClientState;
+import kz.smpp.mysql.ContentType;
 import kz.smpp.mysql.MyDBConnection;
 import kz.smpp.mysql.SmsLine;
 import kz.smpp.utils.AllUtils;
@@ -68,7 +69,7 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
 
             //Ид клиента, в нашей системе, если клиеента нет - будет создан.
             int client_id = mDBConnection.setNewClient(l_addr).getId();
-            if (client_id==0) client_id = mDBConnection.getClient(l_addr).getId();
+            if (client_id == 0) client_id = mDBConnection.getClient(l_addr).getId();
 
             byte[] textMessage = dlr.getShortMessage();
             //Получили текст сообщения c проверкой кодировки
@@ -84,31 +85,76 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
             switch (textBytes.toLowerCase().trim()) {
                 case "da":
                     break;
-                case "da1":
-                    FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("ascendant_welcome"), textBytes);
+                case "да1":
+                    FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("ascendant_welcome"),
+                            textBytes, mDBConnection.getContentType("content_ascendant").getId());
                     break;
-                case "da2":
-                    FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("rate_welcome"), textBytes);
+                case "да2":
+                    FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("rate_welcome"),
+                            textBytes, mDBConnection.getContentType("content_rate").getId());
                     break;
-                case "da3":
-                    FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("metcast_welcome"), textBytes);
+                case "да3":
+                    FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("metcast_welcome"),
+                            textBytes, mDBConnection.getContentType("content_metcast").getId());
                     break;
-                case "da4":
-                    FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("anecdote_welcome"), textBytes);
+                case "да4":
+                    FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("anecdote_welcome"),
+                            textBytes, mDBConnection.getContentType("content_anecdot").getId());
                     break;
-                case "32005":
-                    FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("info"), textBytes);
+                case "да5":
+                    FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("info"),
+                            textBytes, mDBConnection.getContentType("info_table").getId());
                     break;
                 case "стоп":
                 case "stop":
+                    int id_service = 4;
+                    if(mDBConnection.getClientsContentTypes(mDBConnection.getClient(client_id)).size()>0) {
+                        id_service = mDBConnection.getClientsContentTypes(mDBConnection.getClient(client_id)).getFirst().getId();
+                    }
                     if (mDBConnection.RemoveServiceName(l_addr)) {
-                        SmsLine StopSms = new SmsLine();
-                        StopSms.setStatus(0);
-                        StopSms.setSms_body(mDBConnection.getSettings("message_stop").replace("?", ""));
-                        StopSms.setId_client(client_id);
-                        StopSms.setTransaction_id(transaction_id);
-                        mDBConnection.setSingleSMS(StopSms, textBytes);
+                        FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("message_stop").replace("?", ""),
+                                textBytes, id_service);
                         //Далее эту ветку обработает нить которая отправляет СМC которая берет из базы
+                    }
+                    break;
+                case "stop1":
+                case "стоп1":
+                    ContentType ct1 = mDBConnection.getContentType("content_rate");
+                    if (mDBConnection.RemoveClientContentType(client_id,ct1.getId())) {
+                        text_message = mDBConnection.getSettings("goodbye_message_3200");
+                        text_message = text_message.replace("?", ct1.getName());
+                        FillSmsLine(client_id, transaction_id, text_message,
+                                textBytes, ct1.getId());
+                    }
+                    break;
+                case "stop2":
+                case "стоп2":
+                    ContentType ct2 = mDBConnection.getContentType("content_rate");
+                    if (mDBConnection.RemoveClientContentType(client_id,ct2.getId())) {
+                        text_message = mDBConnection.getSettings("goodbye_message_3200");
+                        text_message = text_message.replace("?", ct2.getName());
+                        FillSmsLine(client_id, transaction_id, text_message,
+                                textBytes, ct2.getId());
+                    }
+                    break;
+                case "stop3":
+                case "стоп3":
+                    ContentType ct3 = mDBConnection.getContentType("content_metcast");
+                    if (mDBConnection.RemoveClientContentType(client_id,ct3.getId())) {
+                        text_message = mDBConnection.getSettings("goodbye_message_3200");
+                        text_message = text_message.replace("?", ct3.getName());
+                        FillSmsLine(client_id, transaction_id, text_message,
+                                textBytes, ct3.getId());
+                    }
+                    break;
+                case "stop4":
+                case "стоп4":
+                    ContentType ct4 = mDBConnection.getContentType("content_anecdot");
+                    if (mDBConnection.RemoveClientContentType(client_id,ct4.getId())) {
+                        text_message = mDBConnection.getSettings("goodbye_message_3200");
+                        text_message = text_message.replace("?", ct4.getName());
+                        FillSmsLine(client_id, transaction_id, text_message,
+                                textBytes, ct4.getId());
                     }
                     break;
                 default:
@@ -139,18 +185,17 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
                         //Текущая дата
                         smLn.setDate(currdate);
                         mDBConnection.setUpdateSingleSMSHidden(smLn);
-                    }
-                    else {
-                        //Получаем на что абонент подписался
-                        String service = mDBConnection.SignServiceName(l_addr, textBytes);
-                        //Если он на все подписан
-                        if (service.equals("all")) {
-                            text_message = mDBConnection.getSettings("AllServices_message");
-                        } else {
-                            text_message = mDBConnection.getSettings("welcome_message_3200");
-                            text_message = text_message.replace("?", service);
-                        }
-                        FillSmsLine(client_id, transaction_id, text_message, textBytes);
+                    } else {
+//                        //Получаем на что абонент подписался
+//                        String service = mDBConnection.SignServiceName(l_addr, textBytes);
+//                        //Если он на все подписан
+//                        if (service.equals("all")) {
+//                            text_message = mDBConnection.getSettings("AllServices_message");
+//                        } else {
+//                            text_message = mDBConnection.getSettings("welcome_message_3200");
+//                            text_message = text_message.replace("?", service);
+//                        }
+//                        FillSmsLine(client_id, transaction_id, text_message, textBytes);
                     }
                     break;
             }
@@ -190,12 +235,13 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
         client.bind();
     }
 
-    public void FillSmsLine(int client_id, String transaction_id, String MessageToSend, String StcMsg) {
+    private void FillSmsLine(int client_id, String transaction_id, String MessageToSend, String StcMsg, int service_id) {
         SmsLine StopSms = new SmsLine();
         StopSms.setStatus(0);
         StopSms.setSms_body(MessageToSend);
         StopSms.setId_client(client_id);
         StopSms.setTransaction_id(transaction_id);
+        StopSms.setServiceId(service_id);
         mDBConnection.setSingleSMS(StopSms, StcMsg);
     }
 

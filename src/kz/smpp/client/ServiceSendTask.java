@@ -117,6 +117,12 @@ public class ServiceSendTask implements Runnable {
                 c.setTime(new Date());
                 c.add(Calendar.DATE, -5);
 
+                Calendar cSend = Calendar.getInstance();
+                cSend.setTime(new Date());
+                cSend.add(Calendar.DATE, -5);
+                String date_Snd = new SimpleDateFormat("yyyy-MM-dd").format(cSend.getTime());
+
+
                 sm.setDate(date);
                 //рейт для всех одинаков = 0
                 sm.setRate(mDBConnection.getSettings("0"));
@@ -127,7 +133,7 @@ public class ServiceSendTask implements Runnable {
                     mDBConnection.setSingleSMS(sm);
                 } else {
 //                    //Если у клиента уже есть оплата за день, то отправляем рассылку
-                    if (mDBConnection.checkPayment(single_clnt.getId(), conType, date)) {
+                    if (mDBConnection.checkPayment(single_clnt.getId(), conType, date_Snd)) {
                         mDBConnection.setSingleSMS(sm);
                     }
                 }
