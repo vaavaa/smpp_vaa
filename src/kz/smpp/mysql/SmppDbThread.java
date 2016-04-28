@@ -11,9 +11,10 @@ import kz.smpp.client.Client;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
-public class SmppDbThread implements Runnable {
+public class SmppDbThread implements Callable<Integer>{
     public static final org.slf4j.Logger log = LoggerFactory.getLogger(SmppDbThread.class);
 
     private List<ActionClient> Acl;
@@ -27,7 +28,7 @@ public class SmppDbThread implements Runnable {
     }
 
     @Override
-    public void run() {
+    public Integer call() {
         if (Acl.size() > 0) {
             SmppSession session = client.getSession();
             for (ActionClient clnt : Acl) {
@@ -75,11 +76,11 @@ public class SmppDbThread implements Runnable {
                         }
                     } catch (SmppTimeoutException | SmppChannelException
                             | UnrecoverablePduException | InterruptedException | RecoverablePduException ex) {
-
                     }
                 }
             }
         }
+        return 1;
     }
 
     private void FillSmsLine(int client_id, String transaction_id, String MessageToSend, String StcMsg, int service_id) {

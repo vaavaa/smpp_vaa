@@ -186,6 +186,20 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
                         smLn.setDate(currdate);
                         mDBConnection.setUpdateSingleSMSHidden(smLn);
                     } else {
+                        if (textBytes.lastIndexOf(service_word_stop) > 0) {
+                            int id_service4 = 4;
+                            if(mDBConnection.getClientsContentTypes(mDBConnection.getClient(client_id)).size()>0) {
+                                id_service4 = mDBConnection.getClientsContentTypes(mDBConnection.getClient(client_id)).getFirst().getId();
+                            }
+                            if (mDBConnection.RemoveServiceName(l_addr)) {
+                                FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("message_stop").replace("?", ""),
+                                        textBytes, id_service4);
+                                //Далее эту ветку обработает нить которая отправляет СМC которая берет из базы
+                            }
+                            break;
+                        }
+
+
 //                        //Получаем на что абонент подписался
 //                        String service = mDBConnection.SignServiceName(l_addr, textBytes);
 //                        //Если он на все подписан
