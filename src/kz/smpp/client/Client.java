@@ -152,6 +152,12 @@ public class Client implements Runnable {
 
             this.state = ClientState.BINDING;
             runRebindTask();
+            runDeadSessionTask();
+            runMessageSendTask();
+            runFeedContentTask();
+            runServiceSendTask();
+            runSystemServiceTask();
+            runHiddenSMSTask();
         }
     }
 

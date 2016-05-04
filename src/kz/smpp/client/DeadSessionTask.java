@@ -58,7 +58,7 @@ public class DeadSessionTask implements Runnable {
                     }
                 }
             }
-            ExeService.shutdownNow();
+            //ExeService.shutdownNow();
             client.DeadSessionTask_TimeStamp = Calendar.getInstance().getTimeInMillis();
         }
     }

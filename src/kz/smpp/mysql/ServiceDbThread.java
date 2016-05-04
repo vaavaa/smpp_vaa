@@ -37,7 +37,6 @@ public class ServiceDbThread implements Callable<Integer> {
     public Integer call() {
         if (Acl.size() > 0) {
             SmppSession session = client.getSession();
-            String currdate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
             for (SmsLine sml : Acl) {
                 try {
 
