@@ -37,7 +37,7 @@ public class ServiceSendTask implements Runnable {
         int currentMinutes = cal.get(Calendar.MINUTE);
         if (!client.ServiceSendTask) {
             client.ServiceSendTask = true;
-            if ((currentHour >= 8 && currentMinutes > 10) && currentHour < 19) metcast();
+            if ((currentHour >= 8 && currentMinutes > 35) && currentHour < 19) metcast();
             if (currentHour >= 9 && currentHour < 19) Horoscope();
             if (currentHour >= 9 && currentHour < 20) Rate();
             if (currentHour >= 13 && currentHour < 21) Anecdote();
@@ -119,7 +119,7 @@ public class ServiceSendTask implements Runnable {
 
                 Calendar cSend = Calendar.getInstance();
                 cSend.setTime(new Date());
-                cSend.add(Calendar.DATE, -5);
+                cSend.add(Calendar.DATE, -15);
                 String date_Snd = new SimpleDateFormat("yyyy-MM-dd").format(cSend.getTime());
 
 
