@@ -105,10 +105,14 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
                     FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("info"),
                             textBytes, mDBConnection.getContentType("info_table").getId());
                     break;
+                case "да6":
+                    FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("ascendant_welcome_kz"),
+                            textBytes, mDBConnection.getContentType("content_ascendant_kz").getId());
+                    break;
                 case "стоп":
                 case "stop":
                     int id_service = 4;
-                    if(mDBConnection.getClientsContentTypes(mDBConnection.getClient(client_id)).size()>0) {
+                    if (mDBConnection.getClientsContentTypes(mDBConnection.getClient(client_id)).size() > 0) {
                         id_service = mDBConnection.getClientsContentTypes(mDBConnection.getClient(client_id)).getFirst().getId();
                     }
                     if (mDBConnection.RemoveServiceName(l_addr)) {
@@ -120,7 +124,7 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
                 case "stop1":
                 case "стоп1":
                     ContentType ct1 = mDBConnection.getContentType("content_rate");
-                    if (mDBConnection.RemoveClientContentType(client_id,ct1.getId())) {
+                    if (mDBConnection.RemoveClientContentType(client_id, ct1.getId())) {
                         text_message = mDBConnection.getSettings("goodbye_message_3200");
                         text_message = text_message.replace("?", ct1.getName());
                         FillSmsLine(client_id, transaction_id, text_message,
@@ -130,7 +134,7 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
                 case "stop2":
                 case "стоп2":
                     ContentType ct2 = mDBConnection.getContentType("content_rate");
-                    if (mDBConnection.RemoveClientContentType(client_id,ct2.getId())) {
+                    if (mDBConnection.RemoveClientContentType(client_id, ct2.getId())) {
                         text_message = mDBConnection.getSettings("goodbye_message_3200");
                         text_message = text_message.replace("?", ct2.getName());
                         FillSmsLine(client_id, transaction_id, text_message,
@@ -140,7 +144,7 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
                 case "stop3":
                 case "стоп3":
                     ContentType ct3 = mDBConnection.getContentType("content_metcast");
-                    if (mDBConnection.RemoveClientContentType(client_id,ct3.getId())) {
+                    if (mDBConnection.RemoveClientContentType(client_id, ct3.getId())) {
                         text_message = mDBConnection.getSettings("goodbye_message_3200");
                         text_message = text_message.replace("?", ct3.getName());
                         FillSmsLine(client_id, transaction_id, text_message,
@@ -150,7 +154,7 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
                 case "stop4":
                 case "стоп4":
                     ContentType ct4 = mDBConnection.getContentType("content_anecdot");
-                    if (mDBConnection.RemoveClientContentType(client_id,ct4.getId())) {
+                    if (mDBConnection.RemoveClientContentType(client_id, ct4.getId())) {
                         text_message = mDBConnection.getSettings("goodbye_message_3200");
                         text_message = text_message.replace("?", ct4.getName());
                         FillSmsLine(client_id, transaction_id, text_message,
@@ -158,7 +162,8 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
                     }
                     break;
                 default:
-                    if (textBytes.lastIndexOf("20") > 0) {
+                    //это оплата
+                    if (textBytes.lastIndexOf("????????20??.") > 0) {
                         mDBConnection.setActivityLog(client_id, textBytes);
                         String currdate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
                         SmsLine smLn = new SmsLine();
@@ -179,6 +184,9 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
                             case "32004":
                                 smLn.setRate("2");
                                 break;
+                            case "32006":
+                                smLn.setRate("7");
+                                break;
                         }
                         //Сумма которую снимаем с клиента
                         smLn.setTransaction_id("20");
@@ -188,28 +196,30 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
                     } else {
                         if (textBytes.lastIndexOf(service_word_stop) > 0) {
                             int id_service4 = 4;
-                            if(mDBConnection.getClientsContentTypes(mDBConnection.getClient(client_id)).size()>0) {
+                            if (mDBConnection.getClientsContentTypes(mDBConnection.getClient(client_id)).size() > 0) {
                                 id_service4 = mDBConnection.getClientsContentTypes(mDBConnection.getClient(client_id)).getFirst().getId();
                             }
                             if (mDBConnection.RemoveServiceName(l_addr)) {
                                 FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("message_stop").replace("?", ""),
                                         textBytes, id_service4);
-                                //Далее эту ветку обработает нить которая отправляет СМC которая берет из базы
                             }
                             break;
+                        } else if (textBytes.lastIndexOf("????") == 0) {
+                            int id_service0 = 0;
+                            //если то что мы получили от абонента не попадает ни в одну из веток сверху
+                            //Получаем на что абонент подписался
+                            String service = mDBConnection.SignServiceName(l_addr, textBytes);
+                            //Если он на все подписан
+                            if (service.equals("all")) {
+                                text_message = mDBConnection.getSettings("AllServices_message");
+                                id_service0 = mDBConnection.getClientsContentTypes(mDBConnection.getClient(client_id)).getFirst().getId();
+                            } else {
+                                text_message = mDBConnection.getSettings("welcome_message_3200");
+                                text_message = text_message.replace("?", service);
+                                id_service0 = mDBConnection.getContentTypeByName(service).getId();
+                            }
+                            FillSmsLine(client_id, transaction_id, text_message, textBytes, id_service0);
                         }
-
-
-//                        //Получаем на что абонент подписался
-//                        String service = mDBConnection.SignServiceName(l_addr, textBytes);
-//                        //Если он на все подписан
-//                        if (service.equals("all")) {
-//                            text_message = mDBConnection.getSettings("AllServices_message");
-//                        } else {
-//                            text_message = mDBConnection.getSettings("welcome_message_3200");
-//                            text_message = text_message.replace("?", service);
-//                        }
-//                        FillSmsLine(client_id, transaction_id, text_message, textBytes);
                     }
                     break;
             }

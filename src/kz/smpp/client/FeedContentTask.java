@@ -26,15 +26,9 @@ public class FeedContentTask implements  Runnable {
         if (currentHour >= 7 && currentHour <= 9) {
             if (mDBConnection.metcast()) log.debug("Done. DB is updated with metcast");
         }
-        if (currentHour > 7 && currentHour <= 9)
+        if (currentHour > 7 && currentHour <= 9){
             if (mDBConnection.ascendant())log.debug("Done. DB is updated with ascendant");
-
-//        if (currentHour > 2 && currentHour <= 3){
-//
-//           ParseHtml phtml = new ParseHtml(mDBConnection.getSettings("anecdote"));
-//            phtml.close();
-//            log.debug("Done. DB is updated with anecdote");
-//        }
-
+            if (mDBConnection.ascendant_kz())log.debug("Done. DB is updated with ascendant KAZ");
+        }
 	}
 }

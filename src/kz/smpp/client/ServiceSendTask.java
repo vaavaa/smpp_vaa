@@ -39,6 +39,7 @@ public class ServiceSendTask implements Runnable {
             client.ServiceSendTask = true;
             if ((currentHour >= 8 && currentMinutes > 35) && currentHour < 19) metcast();
             if (currentHour >= 9 && currentHour < 19) Horoscope();
+            if (currentHour >= 9 && currentHour < 19) Horoscope_kz();
             if (currentHour >= 9 && currentHour < 20) Rate();
             if (currentHour >= 13 && currentHour < 21) Anecdote();
             client.ServiceSendTask = false;
@@ -64,13 +65,26 @@ public class ServiceSendTask implements Runnable {
             String an_value = mDBConnection.getHoroscopeFromDate(date);
 
             Calendar cal = Calendar.getInstance();
-            int currentHour = cal.get(Calendar.HOUR_OF_DAY);
 
             //У нас 4 контент для гороскопа
             if (mDBConnection.lineCountRequest(date, 5) == 0) {
 
                 RunSMSSend(4, an_value);
                 ServiceAction(4);
+            }
+        }
+    }
+    private void Horoscope_kz() {
+        if (client.state == ClientState.BOUND) {
+            String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+            // Создаем очередь для отправки
+            String an_value = mDBConnection.getHoroscopeFromDate_kz(date);
+
+            //У нас 4 контент для гороскопа
+            if (mDBConnection.lineCountRequest(date, 5) == 0) {
+
+                RunSMSSend(7, an_value);
+                ServiceAction(7);
             }
         }
     }
@@ -147,50 +161,6 @@ public class ServiceSendTask implements Runnable {
         if (client.state == ClientState.BOUND) {
             List<SmsLine> SMs = mDBConnection.getSMSLine(TypeContent);
             if (SMs.size() > 0) {
-//                SmppSession session = client.getSession();
-//                for (SmsLine sml : SMs) {
-//                    try {
-//                        int SequenceNumber = 1 + (int) (Math.random() * 32000);
-//                        String client_msisdn = Long.toString(mDBConnection.getClient(sml.getId_client()).getAddrs());
-//
-//                        byte[] textBytes = CharsetUtil.encode(sml.getSms_body(), "UCS-2");
-//
-//                        String source_address = mDBConnection.getContentTypeById(TypeContent).getService_code();
-//
-//                        SubmitSm sm = new SubmitSm();
-//                        sm.setSourceAddress(new Address((byte) 0x00, (byte) 0x01, source_address));
-//                        sm.setDestAddress(new Address((byte) 0x01, (byte) 0x01, client_msisdn));
-//                        sm.setDataCoding((byte) 8);
-//                        sm.setEsmClass((byte) 0);
-//                        sm.setShortMessage(null);
-//                        sm.setSequenceNumber(SequenceNumber);
-//                        //Все сообщения по 0 тарифу, но попадают они сюда если в Hidden появилась запись запись с суммой <20
-//                        sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, mDBConnection.getSettings("0").getBytes(), "sourcesub_address"));
-//                        sm.setOptionalParameter(new Tlv(SmppConstants.TAG_MESSAGE_PAYLOAD, textBytes, "messagePayload"));
-//                        sm.calculateAndSetCommandLength();
-//                        sml.setStatus(-1);
-//                        if (!session.isClosed() && !session.isUnbinding()) {
-//                            SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(40000));
-//                            log.debug("SM sent" + sm.toString());
-//
-//                            if (resp.getCommandStatus() != 0) {
-//                                sml.setErr_code(Integer.toString(resp.getCommandStatus()));
-//                                sml.setStatus(-1);
-//                                mDBConnection.UpdateSMSLine(sml);
-//                            } else {
-//                                sml.setStatus(1);
-//                                mDBConnection.UpdateSMSLine(sml);
-//                            }
-//                        }
-//                    } catch (SmppTimeoutException | SmppChannelException
-//                            | UnrecoverablePduException | InterruptedException | RecoverablePduException ex) {
-//                        //фиксируем сбой отправки
-//                        sml.setStatus(-1);
-//                        mDBConnection.UpdateSMSLine(sml);
-//                        log.debug("System's error, sending failure ", ex);
-//                    }
-//                }
-
                 int sideOfPool = 0;
                 CompletionService<Integer> taskCompletionService =
                         new ExecutorCompletionService<Integer>(ExeService);

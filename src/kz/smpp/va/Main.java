@@ -94,12 +94,13 @@ public class Main {
                 return true;
             case "get horoscope":
                 mDBConnection.ascendant();
+                mDBConnection.ascendant_kz();
                 log.debug("Done. DB is updated with horoscope");
                 return true;
             case "tariff":
                 if (client != null) {
                     if (client.getSession() != null) {
-                        client.runHiddenSMSTask();
+                        //client.runHiddenSMSTask();
 
                         return true;
                     }

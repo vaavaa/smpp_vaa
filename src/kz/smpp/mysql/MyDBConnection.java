@@ -781,6 +781,25 @@ public class MyDBConnection {
         return ct;
     }
 
+    public ContentType getContentTypeByName(String name) {
+        ContentType ct = new ContentType();
+        String sql_string = "SELECT * FROM content_type WHERE name = '" + name + "'";
+        try {
+            ResultSet rs = this.query(sql_string);
+            if (rs.next()) {
+                ct.setId(rs.getInt("id"));
+                ct.setName(rs.getString("name"));
+                ct.setName_eng(rs.getString("name_eng"));
+                ct.setTable_name(rs.getString("table_name"));
+                ct.setService_code(rs.getString("service_code"));
+            }
+            rs.close();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return ct;
+    }
+
     public ContentType getContentTypeById(int service_id) {
         ContentType ct = new ContentType();
         String sql_string = "SELECT * FROM content_type WHERE id = '" + service_id + "'";
@@ -925,6 +944,25 @@ public class MyDBConnection {
         //Результат отправки пишем в исходящие, в двух таблицах
 
         String sql_string = "SELECT top 1 value FROM content_ascendant WHERE _date='" + dte + "'";
+        String vle = "";
+        try {
+            ResultSet rs = this.query(sql_string);
+            if (rs.next()) vle = rs.getString("value");
+            rs.close();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return vle;
+    }
+    public String getHoroscopeFromDate_kz(String dte) {
+
+        //Выбираем из контент тайпа на эту дату
+        //Вставляем его в исходящие сообщения со статусом 2 - анекдот, по всем клиентам, кто подписался на анекдот
+        //Отправляем. Смотрим когда клиент подписался на сервис, если текущая дата больше чем 3 дня то отправляем за деньги,
+        //если нет, то отправляем пустым.
+        //Результат отправки пишем в исходящие, в двух таблицах
+
+        String sql_string = "SELECT top 1 value FROM content_ascendant_kz WHERE _date='" + dte + "'";
         String vle = "";
         try {
             ResultSet rs = this.query(sql_string);
@@ -1115,6 +1153,31 @@ public class MyDBConnection {
                     if (message.getDescription().length() > 255)
                         message.setDescription(message.getDescription().substring(0, 255));
                     SQL_string = "INSERT INTO content_ascendant VALUES (4, '" + rate_date + "', '"
+                            + message.getDescription() + "')";
+                    this.Update(SQL_string);
+                }
+                rs.close();
+            }
+            return true;
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean ascendant_kz() {
+        RSSFeedParser parser = new RSSFeedParser(this.getSettings("ascendent_kz"));
+        Feed feed = parser.readFeed();
+        try {
+            for (FeedMessage message : feed.getMessages()) {
+                String rate_date = message.getTitle();
+
+                String SQL_string = "SELECT * FROM content_ascendant_kz WHERE _date = '" + rate_date + "'";
+                ResultSet rs = this.query(SQL_string);
+                if (!rs.next()) {
+                    if (message.getDescription().length() > 255)
+                        message.setDescription(message.getDescription().substring(0, 255));
+                    SQL_string = "INSERT INTO content_ascendant_kz VALUES (6, '" + rate_date + "', '"
                             + message.getDescription() + "')";
                     this.Update(SQL_string);
                 }
