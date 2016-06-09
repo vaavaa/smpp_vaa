@@ -133,7 +133,7 @@ public class ServiceSendTask implements Runnable {
 
                 Calendar cSend = Calendar.getInstance();
                 cSend.setTime(new Date());
-                cSend.add(Calendar.DATE, -15);
+                cSend.add(Calendar.DATE, -3);
                 String date_Snd = new SimpleDateFormat("yyyy-MM-dd").format(cSend.getTime());
 
 

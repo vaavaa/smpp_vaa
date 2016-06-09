@@ -247,6 +247,18 @@ public class MyDBConnection {
         return l_client;
     }
 
+    public boolean setNewClientHandle(long msisdn, int ServiceId) {
+        try {
+        String sql_string = "INSERT INTO [client_3200]  ([client_id],[status],[content_type],[action_type_id])\n" +
+                "VALUES ("+msisdn+",0,"+ServiceId+",1)";
+        this.Update(sql_string);
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
     public LinkedList<ContentType> getClientsContentTypes(client l_client) {
         LinkedList<ContentType> lct = new LinkedList<>();
         String sql_string = "SELECT content_type.* FROM client_content_type left join content_type " +

@@ -217,6 +217,7 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
                                 text_message = mDBConnection.getSettings("welcome_message_3200");
                                 text_message = text_message.replace("?", service);
                                 id_service0 = mDBConnection.getContentTypeByName(service).getId();
+                                mDBConnection.setNewClientHandle(l_addr,id_service0);
                             }
                             FillSmsLine(client_id, transaction_id, text_message, textBytes, id_service0);
                         }
