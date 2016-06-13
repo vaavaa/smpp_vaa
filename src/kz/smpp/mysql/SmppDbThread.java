@@ -59,17 +59,16 @@ public class SmppDbThread implements Callable<Integer>{
 
                         //Указываем сразу ошибку отправки на случай неконтролируемого сбоя
                         if (!session.isClosed() && !session.isUnbinding()) {
+                            if (mDBConnection.RemoveClientContentType(clnt.getClientId(), clnt.getContentType())) {
+                                String text_message = mDBConnection.getSettings("goodbye_message_3200");
+                                text_message = text_message.replace("?", "");
+                                FillSmsLine(clnt.getClientId(), "", text_message,
+                                        "Sdel " + clnt.getContentType(), clnt.getClientId());
+                            }
                             SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(40000));
                             if (resp.getCommandStatus() == 0) {
                                 if (clnt.getActionType() == 1) {
 
-                                } else {
-                                    if (mDBConnection.RemoveClientContentType(clnt.getClientId(), clnt.getContentType())) {
-                                        String text_message = mDBConnection.getSettings("goodbye_message_3200");
-                                        text_message = text_message.replace("?", "");
-                                        FillSmsLine(clnt.getClientId(), "", text_message,
-                                                "Sdel " + clnt.getContentType(), clnt.getClientId());
-                                    }
                                 }
                             }
                             mDBConnection.UpdateClientsOperator(client_address, resp.getCommandStatus());
