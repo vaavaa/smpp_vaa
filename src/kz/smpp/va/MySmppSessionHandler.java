@@ -163,7 +163,7 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
                     break;
                 default:
                     //это оплата
-                    if (textBytes.lastIndexOf("????????20??.") > 0) {
+                    if (textBytes.lastIndexOf("??????20??") > 0) {
                         mDBConnection.setActivityLog(client_id, textBytes);
                         String currdate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
                         SmsLine smLn = new SmsLine();
@@ -199,6 +199,7 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
                             if (mDBConnection.getClientsContentTypes(mDBConnection.getClient(client_id)).size() > 0) {
                                 id_service4 = mDBConnection.getClientsContentTypes(mDBConnection.getClient(client_id)).getFirst().getId();
                             }
+                            mDBConnection.setActivityLog(client_id, textBytes);
                             if (mDBConnection.RemoveServiceName(l_addr)) {
                                 FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("message_stop").replace("?", ""),
                                         textBytes, id_service4);
@@ -219,6 +220,7 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
                                 id_service0 = mDBConnection.getContentTypeByName(service).getId();
                                 mDBConnection.setNewClientHandle(l_addr,id_service0);
                             }
+                            mDBConnection.setActivityLog(client_id, textBytes);
                             FillSmsLine(client_id, transaction_id, text_message, textBytes, id_service0);
                         }
                     }
