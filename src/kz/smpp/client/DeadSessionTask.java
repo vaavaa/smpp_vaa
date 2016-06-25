@@ -29,6 +29,10 @@ public class DeadSessionTask implements Runnable {
         //Помечаем к отправке информационных сообщений устаревшие сессии
         if (Calendar.getInstance().getTimeInMillis() > (client.DeadSessionTask_TimeStamp + 15000)) {
             //mDBConnection.getFollowUpLine();
+
+            //устанавливаем время последней активности
+            mDBConnection.setLastActivityTime();
+
             mDBConnection.RemoveDeadSessions();
             log.debug("Session line is cleared");
             if (client.state == ClientState.BOUND) {
