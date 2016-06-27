@@ -49,21 +49,17 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
 
             //кодовое слово о выводе информации о сервисе
             DeliverSm dlr = (DeliverSm) pduRequest;
-            log.debug("Log 1");
             //ok, команда ответа
             int command_respond = 0x00;
 
             //Формируем ответ
             PduResponse DSR = pduRequest.createResponse();
             DSR.setSequenceNumber(dlr.getSequenceNumber());
-            log.debug("Log 2");
             String transaction_id = dlr.getDestAddress().getAddress();
             if (transaction_id.lastIndexOf("#") > 0)
                 transaction_id = transaction_id.substring(transaction_id.lastIndexOf("#") + 1, transaction_id.length());
-            log.debug("Log 3");
             String dest_addr = dlr.getDestAddress().getAddress();
             dest_addr = dest_addr.substring(0, dest_addr.lastIndexOf("#"));
-            log.debug("Log 4");
             //Переводим в long отправителя - это наш абонент
             String arrd = dlr.getSourceAddress().getAddress();
             Long l_addr = Long.parseLong(arrd);
@@ -71,13 +67,11 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
             //Ид клиента, в нашей системе, если клиеента нет - будет создан.
             int client_id = mDBConnection.setNewClient(l_addr).getId();
             if (client_id == 0) client_id = mDBConnection.getClient(l_addr).getId();
-            log.debug("Log 6");
             byte[] textMessage = dlr.getShortMessage();
             //Получили текст сообщения c проверкой кодировки
             String textBytes = "";
             if (dlr.getDataCoding() == 0x08) textBytes = CharsetUtil.decode(textMessage, "UCS-2");
             else textBytes = CharsetUtil.decode(textMessage, "GSM");
-            log.debug("Log 7");
             //Адрес получатель может быть:
             //32001 - гороскоп DA1
             //32002 - Курс валют DA2

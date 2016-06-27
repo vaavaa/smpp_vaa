@@ -71,7 +71,9 @@ public class MyDBConnection {
      * @throws SQLException
      */
     public ResultSet query(String query) throws SQLException {
+        int seconds = 2;
         preparedStatement = myConnection.prepareStatement(query);
+        preparedStatement.setQueryTimeout(seconds);
         return preparedStatement.executeQuery();
     }
 
@@ -222,26 +224,30 @@ public class MyDBConnection {
 
     public client setNewClient(long msisdn) {
         client l_client = new client();
-        String sql_string = "SELECT * FROM clients WHERE msisdn= " + msisdn;
+        log.debug("Log 000_ "+ msisdn);
+        String sql_string = "SELECT top 1 * FROM clients WHERE msisdn= " + msisdn;
+        log.debug("Log 51");
         try {
             ResultSet rs = this.query(sql_string);
+            log.debug("Log 52");
             if (rs.next()) {
-                if (rs.getInt("status") != 0) {
-                    sql_string = "UPDATE clients SET  status = 0 WHERE msisdn =" + msisdn;
-                    this.Update(sql_string);
-                }
                 l_client.setStatus(0);
                 l_client.setAddrs(msisdn);
                 l_client.setId(rs.getInt("id"));
+                log.debug("Log 53");
             } else {
+                log.debug("Log 54");
                 sql_string = "INSERT  INTO clients (msisdn, status) VALUES (" + msisdn + ", 0)";
                 this.Update(sql_string);
+                log.debug("Log 55");
                 l_client.setId(this.getLastId());
                 l_client.setAddrs(msisdn);
                 l_client.setStatus(0);
             }
+            log.debug("Log 56");
             rs.close();
         } catch (SQLException ex) {
+            log.debug("Log 57");
             ex.printStackTrace();
         }
         return l_client;
