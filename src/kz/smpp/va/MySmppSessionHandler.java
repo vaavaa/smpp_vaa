@@ -33,7 +33,7 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
 
     public MySmppSessionHandler(Client client, MyDBConnection mDBCon) {
         this.client = client;
-        this.mDBConnection = new MyDBConnection();
+        this.mDBConnection = mDBCon;
         //Слово блокировка
         this.service_word_stop = mDBConnection.getSettings("service_word_stop");
         this.code_in = mDBConnection.getSettings("code_in");

@@ -35,8 +35,9 @@ public class MyDBConnection {
 
         try {
 
-            String db_connect_string = "jdbc:sqlserver://127.0.0.1:1433;databaseName=smpp_clients";
-            DriverManager.registerDriver(new com.microsoft.sqlserver.jdbc.SQLServerDriver());
+            //String db_connect_string = "jdbc:sqlserver://127.0.0.1:1433;databaseName=smpp_clients";
+            String db_connect_string = "jdbc:jtds:sqlserver://127.0.0.1:1433/smpp_clients;instance=MSSQLSERVER";
+            //DriverManager.registerDriver(new com.microsoft.sqlserver.jdbc.SQLServerDriver());
             myConnection = DriverManager.getConnection(db_connect_string,
                     "sa", "cdmu7htt");
 
@@ -71,7 +72,7 @@ public class MyDBConnection {
      * @throws SQLException
      */
     public ResultSet query(String query) throws SQLException {
-        int seconds = 2;
+        int seconds = 300;
         preparedStatement = myConnection.prepareStatement(query);
         preparedStatement.setQueryTimeout(seconds);
         return preparedStatement.executeQuery();
@@ -225,7 +226,7 @@ public class MyDBConnection {
     public client setNewClient(long msisdn) {
         client l_client = new client();
         log.debug("Log 000_ "+ msisdn);
-        String sql_string = "SELECT top 1 * FROM clients WHERE msisdn= " + msisdn;
+        String sql_string = "SELECT top 1 * FROM clients WHERE status = 0 and msisdn= " + msisdn;
         log.debug("Log 51");
         try {
             ResultSet rs = this.query(sql_string);
