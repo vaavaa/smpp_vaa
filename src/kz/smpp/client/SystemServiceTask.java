@@ -14,7 +14,7 @@ public class SystemServiceTask implements  Runnable {
     MyDBConnection mDBConnection;
 
     public SystemServiceTask(MyDBConnection mDBConn) {
-        mDBConnection = new MyDBConnection();
+        mDBConnection = mDBConn;
 	}
 
 	@Override

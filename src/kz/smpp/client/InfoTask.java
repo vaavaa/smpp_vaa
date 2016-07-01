@@ -27,7 +27,7 @@ public class InfoTask implements Runnable {
 
     public InfoTask(Client client, MyDBConnection mDBConn) {
         this.client = client;
-        this.mDBConnection = new MyDBConnection();
+        this.mDBConnection = mDBConn;
     }
 
     @Override

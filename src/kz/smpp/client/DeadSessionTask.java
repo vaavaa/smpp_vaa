@@ -19,7 +19,7 @@ public class DeadSessionTask implements Runnable {
     protected ExecutorService ExeService;
 
     public DeadSessionTask(Client client, MyDBConnection mDBConn) {
-        mDBConnection = new MyDBConnection();
+        mDBConnection = mDBConn;
         this.client = client;
         this.ExeService = Executors.newCachedThreadPool();
     }

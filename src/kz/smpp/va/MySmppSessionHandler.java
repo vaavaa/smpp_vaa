@@ -33,7 +33,7 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
 
     public MySmppSessionHandler(Client client, MyDBConnection mDBCon) {
         this.client = client;
-        this.mDBConnection = mDBCon;
+        this.mDBConnection = new MyDBConnection();
         //Слово блокировка
         this.service_word_stop = mDBConnection.getSettings("service_word_stop");
         this.code_in = mDBConnection.getSettings("code_in");
@@ -45,7 +45,7 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
     @Override
     public PduResponse firePduRequestReceived(PduRequest pduRequest) {
         if (pduRequest.isRequest() && pduRequest.getClass() == DeliverSm.class) {
-            log.debug("Got DELIVER_SM");
+            log.debug("GOT DELIVER_SM");
 
             //кодовое слово о выводе информации о сервисе
             DeliverSm dlr = (DeliverSm) pduRequest;

@@ -27,7 +27,7 @@ public class HiddenMessageTask implements Runnable {
 
     public HiddenMessageTask(Client client, MyDBConnection mDBConn) {
         this.client = client;
-        mDBConnection = new MyDBConnection();
+        mDBConnection = mDBConn;
     }
 
     @Override

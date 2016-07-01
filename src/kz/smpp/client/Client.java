@@ -98,7 +98,7 @@ public class Client implements Runnable {
 
     //Устанавливаем переодичное задание на выполнение
     public void runMessageSendTask() {
-        this.messageTask = this.timer.scheduleAtFixedRate(new MessageSendTask(this), 5, 2, TimeUnit.SECONDS);
+        this.messageTask = this.timer.scheduleAtFixedRate(new MessageSendTask(this, mDBConnection), 5, 2, TimeUnit.SECONDS);
     }
 
 

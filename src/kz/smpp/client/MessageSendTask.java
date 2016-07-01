@@ -21,7 +21,7 @@ public class MessageSendTask implements Runnable {
     private MyDBConnection mDBConnection;
 
 
-    public MessageSendTask(Client client) {
+    public MessageSendTask(Client client, MyDBConnection mDBConn) {
         this.client = client;
         mDBConnection = new MyDBConnection();
     }

@@ -20,6 +20,9 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Date;
 
+import static java.sql.Connection.TRANSACTION_READ_COMMITTED;
+import static java.sql.Connection.TRANSACTION_READ_UNCOMMITTED;
+
 
 public class MyDBConnection {
 
@@ -35,9 +38,9 @@ public class MyDBConnection {
 
         try {
 
-            //String db_connect_string = "jdbc:sqlserver://127.0.0.1:1433;databaseName=smpp_clients";
-            String db_connect_string = "jdbc:jtds:sqlserver://127.0.0.1:1433/smpp_clients;instance=MSSQLSERVER";
-            //DriverManager.registerDriver(new com.microsoft.sqlserver.jdbc.SQLServerDriver());
+            String db_connect_string = "jdbc:sqlserver://127.0.0.1:1433;databaseName=smpp_clients";
+            //String db_connect_string = "jdbc:jtds:sqlserver://127.0.0.1:1433/smpp_clients;instance=MSSQLSERVER";
+            DriverManager.registerDriver(new com.microsoft.sqlserver.jdbc.SQLServerDriver());
             myConnection = DriverManager.getConnection(db_connect_string,
                     "sa", "cdmu7htt");
 
@@ -72,9 +75,7 @@ public class MyDBConnection {
      * @throws SQLException
      */
     public ResultSet query(String query) throws SQLException {
-        int seconds = 300;
         preparedStatement = myConnection.prepareStatement(query);
-        preparedStatement.setQueryTimeout(seconds);
         return preparedStatement.executeQuery();
     }
 
@@ -139,13 +140,13 @@ public class MyDBConnection {
         client l_client = new client();
         String sql_string = "SELECT * FROM clients WHERE id = " + id;
         try {
-            ResultSet rs = this.query(sql_string);
-            if (rs.next()) {
-                l_client.setId(rs.getInt("id"));
-                l_client.setAddrs(rs.getLong("msisdn"));
-                l_client.setStatus(rs.getInt("status"));
+            ResultSet rs1 = this.query(sql_string);
+            if (rs1.next()) {
+                l_client.setId(rs1.getInt("id"));
+                l_client.setAddrs(rs1.getLong("msisdn"));
+                l_client.setStatus(rs1.getInt("status"));
             }
-            rs.close();
+            rs1.close();
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
@@ -158,11 +159,11 @@ public class MyDBConnection {
                 "WHERE (status = 0 or status = 4 or status = 2 or status = 3 or status = 5)" +
                 " AND created_time > '" + select_date + "'";
         try {
-            ResultSet rs = this.query(sql_string);
-            if (rs.next()) {
-                iReturn = rs.getInt("idSms");
+            ResultSet rs0 = this.query(sql_string);
+            if (rs0.next()) {
+                iReturn = rs0.getInt("idSms");
             }
-            rs.close();
+            rs0.close();
         } catch (SQLException ex) {
             ex.printStackTrace();
             iReturn = 10;
@@ -176,11 +177,11 @@ public class MyDBConnection {
                 "WHERE status = 0" +
                 " AND created_time > '" + select_date + "'";
         try {
-            ResultSet rs = this.query(sql_string);
-            if (rs.next()) {
-                iReturn = rs.getInt("idSms");
+            ResultSet rs2 = this.query(sql_string);
+            if (rs2.next()) {
+                iReturn = rs2.getInt("idSms");
             }
-            rs.close();
+            rs2.close();
         } catch (SQLException ex) {
             ex.printStackTrace();
             iReturn = 10;
@@ -194,11 +195,11 @@ public class MyDBConnection {
                 "WHERE status = " + ServiceCode +
                 " AND created_time > '" + select_date + "'";
         try {
-            ResultSet rs = this.query(sql_string);
-            if (rs.next()) {
-                iReturn = rs.getInt("idSms");
+            ResultSet rs3 = this.query(sql_string);
+            if (rs3.next()) {
+                iReturn = rs3.getInt("idSms");
             }
-            rs.close();
+            rs3.close();
         } catch (SQLException ex) {
             ex.printStackTrace();
             iReturn = 10;
@@ -210,13 +211,13 @@ public class MyDBConnection {
         client l_client = new client();
         String sql_string = "SELECT * FROM clients WHERE msisdn = " + msisdn;
         try {
-            ResultSet rs = this.query(sql_string);
-            if (rs.next()) {
-                l_client.setId(rs.getInt("id"));
-                l_client.setAddrs(rs.getLong("msisdn"));
-                l_client.setStatus(rs.getInt("status"));
+            ResultSet rs4 = this.query(sql_string);
+            if (rs4.next()) {
+                l_client.setId(rs4.getInt("id"));
+                l_client.setAddrs(rs4.getLong("msisdn"));
+                l_client.setStatus(rs4.getInt("status"));
             }
-            rs.close();
+            rs4.close();
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
@@ -226,29 +227,23 @@ public class MyDBConnection {
     public client setNewClient(long msisdn) {
         client l_client = new client();
         log.debug("Log 000_ "+ msisdn);
-        String sql_string = "SELECT top 1 * FROM clients WHERE status = 0 and msisdn= " + msisdn;
-        log.debug("Log 51");
+        String sql_string = "SELECT TOP 1 id FROM clients WHERE status = 0 and msisdn= " + msisdn;
         try {
-            ResultSet rs = this.query(sql_string);
-            log.debug("Log 52");
-            if (rs.next()) {
+            ResultSet rs5 = this.query(sql_string);
+            if (rs5.next()) {
                 l_client.setStatus(0);
                 l_client.setAddrs(msisdn);
-                l_client.setId(rs.getInt("id"));
-                log.debug("Log 53");
+                l_client.setId(rs5.getInt("id"));
+                rs5.close();
             } else {
-                log.debug("Log 54");
+                rs5.close();
                 sql_string = "INSERT  INTO clients (msisdn, status) VALUES (" + msisdn + ", 0)";
                 this.Update(sql_string);
-                log.debug("Log 55");
                 l_client.setId(this.getLastId());
                 l_client.setAddrs(msisdn);
                 l_client.setStatus(0);
             }
-            log.debug("Log 56");
-            rs.close();
         } catch (SQLException ex) {
-            log.debug("Log 57");
             ex.printStackTrace();
         }
         return l_client;
@@ -271,17 +266,17 @@ public class MyDBConnection {
         String sql_string = "SELECT content_type.* FROM client_content_type left join content_type " +
                 "on content_type.id = client_content_type.id_content_type WHERE client_content_type.status = 0 and client_content_type.id_client = " + l_client.getId();
         try {
-            ResultSet rs = this.query(sql_string);
-            while (rs.next()) {
+            ResultSet rs6 = this.query(sql_string);
+            while (rs6.next()) {
                 ContentType ct = new ContentType();
-                ct.setId(rs.getInt("id"));
-                ct.setName(rs.getString("name"));
-                ct.setName_eng(rs.getString("name_eng"));
-                ct.setTable_name(rs.getString("table_name"));
-                ct.setService_code(rs.getString("service_code"));
+                ct.setId(rs6.getInt("id"));
+                ct.setName(rs6.getString("name"));
+                ct.setName_eng(rs6.getString("name_eng"));
+                ct.setTable_name(rs6.getString("table_name"));
+                ct.setService_code(rs6.getString("service_code"));
                 lct.add(ct);
             }
-            rs.close();
+            rs6.close();
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
@@ -292,15 +287,15 @@ public class MyDBConnection {
         client l_client = new client();
         String sql_string = "SELECT * FROM clients WHERE msisdn= " + msisdn;
         try {
-            ResultSet rs = this.query(sql_string);
-            if (rs.next()) {
-                if (rs.getInt("status") != 0) {
+            ResultSet rs7 = this.query(sql_string);
+            if (rs7.next()) {
+                if (rs7.getInt("status") != 0) {
                     sql_string = "UPDATE clients SET  status = -1 WHERE msisdn =" + msisdn;
                     this.Update(sql_string);
                 } else {
                     l_client.setStatus(-1);
                     l_client.setAddrs(msisdn);
-                    l_client.setId(rs.getInt("id"));
+                    l_client.setId(rs7.getInt("id"));
                 }
             } else {
                 sql_string = "INSERT INTO clients VALUES(null," + msisdn + ",-1)";
@@ -309,7 +304,7 @@ public class MyDBConnection {
                 l_client.setAddrs(msisdn);
                 l_client.setStatus(-1);
             }
-            rs.close();
+            rs7.close();
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
@@ -322,16 +317,16 @@ public class MyDBConnection {
                 "on content_type.id = client_content_type.id_content_type WHERE client_content_type.id_client = " + l_client.getId() + " " +
                 " AND client_content_type.id_content_type = " + contenttype.getId();
         try {
-            ResultSet rs = this.query(sql_string);
-            while (rs.next()) {
+            ResultSet rs8 = this.query(sql_string);
+            while (rs8.next()) {
                 ContentType ct = new ContentType();
-                ct.setId(rs.getInt("id"));
-                ct.setName(rs.getString("name"));
-                ct.setName_eng(rs.getString("name_eng"));
-                ct.setTable_name(rs.getString("table_name"));
+                ct.setId(rs8.getInt("id"));
+                ct.setName(rs8.getString("name"));
+                ct.setName_eng(rs8.getString("name_eng"));
+                ct.setTable_name(rs8.getString("table_name"));
                 lct.add(ct);
             }
-            rs.close();
+            rs8.close();
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
@@ -344,15 +339,15 @@ public class MyDBConnection {
                 "ON id_client=id WHERE clients.status= 0 AND id_content_type =" + contentTypeCode + " AND id_client NOT IN " +
                 "(SELECT id_client FROM sms_line_main WHERE id_content_type = " + contentTypeCode + " AND date_send = '" + date + "')";
         try {
-            ResultSet rs = this.query(sql_string);
-            while (rs.next()) {
+            ResultSet rs9 = this.query(sql_string);
+            while (rs9.next()) {
                 client cl = new client();
-                cl.setId(rs.getInt("id_client"));
-                cl.setAddrs(rs.getLong("msisdn"));
-                cl.setHelpDate(rs.getDate("update_date"));
+                cl.setId(rs9.getInt("id_client"));
+                cl.setAddrs(rs9.getLong("msisdn"));
+                cl.setHelpDate(rs9.getDate("update_date"));
                 lct.add(cl);
             }
-            rs.close();
+            rs9.close();
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
@@ -368,15 +363,15 @@ public class MyDBConnection {
                 "(SELECT id_client FROM sms_line WHERE (status = 101 or status = -101) AND created_time between " +
                 "DATEADD(mm,-1, '" + date + "') AND DATEADD(dd, 1, '" + date + "')) GROUP by id_client, msisdn";
         try {
-            ResultSet rs = this.query(sql_string);
-            while (rs.next()) {
+            ResultSet rs11 = this.query(sql_string);
+            while (rs11.next()) {
                 client cl = new client();
-                cl.setId(rs.getInt("id_client"));
-                cl.setAddrs(rs.getLong("msisdn"));
-                cl.setHelpDate(rs.getDate("updDte"));
+                cl.setId(rs11.getInt("id_client"));
+                cl.setAddrs(rs11.getLong("msisdn"));
+                cl.setHelpDate(rs11.getDate("updDte"));
                 lct.add(cl);
             }
-            rs.close();
+            rs11.close();
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
@@ -390,15 +385,15 @@ public class MyDBConnection {
                 " AND id_client NOT IN " +
                 "(SELECT id_client FROM sms_line_quiet WHERE id_content_type = " + contentTypeCode + " AND date_send = '" + date + "')";
         try {
-            ResultSet rs = this.query(sql_string);
-            while (rs.next()) {
+            ResultSet rs12 = this.query(sql_string);
+            while (rs12.next()) {
                 client cl = new client();
-                cl.setId(rs.getInt("id_client"));
-                cl.setAddrs(rs.getLong("msisdn"));
-                cl.setHelpDate(rs.getDate("update_date"));
+                cl.setId(rs12.getInt("id_client"));
+                cl.setAddrs(rs12.getLong("msisdn"));
+                cl.setHelpDate(rs12.getDate("update_date"));
                 lct.add(cl);
             }
-            rs.close();
+            rs12.close();
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
@@ -409,16 +404,16 @@ public class MyDBConnection {
         List<ContentType> contentTypes = new ArrayList<>();
         String sql_string = "SELECT  id, name, table_name, name_eng from content_type";
         try {
-            ResultSet rs = this.query(sql_string);
-            while (rs.next()) {
+            ResultSet rs13 = this.query(sql_string);
+            while (rs13.next()) {
                 ContentType ct = new ContentType();
-                ct.setId(rs.getInt("id"));
-                ct.setName(rs.getString("name"));
-                ct.setTable_name(rs.getString("table_name"));
-                ct.setName_eng(rs.getString("name_eng"));
+                ct.setId(rs13.getInt("id"));
+                ct.setName(rs13.getString("name"));
+                ct.setTable_name(rs13.getString("table_name"));
+                ct.setName_eng(rs13.getString("name_eng"));
                 contentTypes.add(ct);
             }
-            rs.close();
+            rs13.close();
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
@@ -444,18 +439,20 @@ public class MyDBConnection {
         String chk_sql_string = "SELECT id_client FROM sms_line_main WHERE id_content_type=" +
                 smsLine.getStatus() + " AND date_send = '" + smsLine.getDate() + "' AND id_client = " + smsLine.getId_client();
         try {
-            ResultSet rs = this.query(chk_sql_string);
-            if (!rs.next()) {
+            ResultSet rs14 = this.query(chk_sql_string);
+            if (!rs14.next()) {
                 String sql_string = "INSERT INTO sms_line(id_client, sms_body, status, transaction_id, rate) " +
                         "VALUES (" + smsLine.getId_client() + ",'" + smsLine.getSms_body() + "'," + smsLine.getStatus() + ",'" + smsLine.getTransaction_id() + "', '" + smsLine.getRate() + "')";
                 String sql_string1 = "INSERT INTO sms_line_main(id_client, id_content_type, date_send, rate) " +
                         "VALUES (" + smsLine.getId_client() + "," + smsLine.getStatus() + ",'" + smsLine.getDate() + "', " + smsLine.getRate() + ")";
+                rs14.close();
                 this.Update(sql_string);
                 ireturn = getLastId();
 
                 this.Update(sql_string1);
                 return ireturn;
             } else {
+                rs14.close();
                 return ireturn;
             }
 
@@ -470,10 +467,12 @@ public class MyDBConnection {
                 "id_client = " + ClientId + " AND id_content_type = " + conType + " AND date_send <='" + date + "' " +
                 "AND sms_line_quiet.status = 1";
         try {
-            ResultSet rs = this.query(sql_string);
-            if (rs.next()) {
+            ResultSet rs15 = this.query(sql_string);
+            if (rs15.next()) {
+                rs15.close();
                 return true;
             } else {
+                rs15.close();
                 return false;
             }
         } catch (SQLException ex) {
@@ -488,12 +487,14 @@ public class MyDBConnection {
                 "id_content_type = " + smsLine.getRate() + " AND " +
                 "date_send = '" + smsLine.getDate() + "'";
         try {
-            ResultSet rs = this.query(sql_string);
-            if (!rs.next()) {
+            ResultSet rs16 = this.query(sql_string);
+            if (!rs16.next()) {
+                rs16.close();
                 setSingleSMSHidden(smsLine);
                 return true;
             } else {
-                smsLine.setId_sms(rs.getInt("id_sms_line"));
+                smsLine.setId_sms(rs16.getInt("id_sms_line"));
+                rs16.close();
                 UpdateHiddenSMSLine(smsLine);
                 return true;
             }
@@ -521,11 +522,13 @@ public class MyDBConnection {
     public boolean SetClientType(int id_client, int id_content_type) {
         String SQLString = "SELECT id_client FROM client_content_type WHERE id_client=" + id_client + " AND id_content_type = " + id_content_type;
         try {
-            ResultSet rs = this.query(SQLString);
-            if (rs.next()) {
+            ResultSet rs80 = this.query(SQLString);
+            if (rs80.next()) {
+                rs80.close();
                 return true;
             } else {
                 String sql_string = "INSERT INTO client_content_type(id_client, id_content_type, status) VALUES (" + id_client + "," + id_content_type + ",0)";
+                rs80.close();
                 this.Update(sql_string);
                 return true;
             }
@@ -591,8 +594,8 @@ public class MyDBConnection {
     }
 
     public void setLastActivityTime(){
-        Calendar calendar = Calendar.getInstance();
-        setSettings("LastActivityTime",""+calendar.getTimeInMillis());
+        //Calendar calendar = Calendar.getInstance();
+        //setSettings("LastActivityTime",""+calendar.getTimeInMillis());
     }
 
     public List<SmsLine> getAllSingleHiddenSMS(String date) {
