@@ -82,8 +82,15 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
                 case "da":
                     break;
                 case "да1":
-                    FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("ascendant_welcome"),
-                            textBytes, mDBConnection.getContentType("content_ascendant").getId());
+                    int kaz_id = mDBConnection.getContentType("content_ascendant_kz").getId();
+                    if (mDBConnection.GetClientType(client_id, kaz_id)) {
+                        FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("ascendant_welcome_kz"),
+                                textBytes, mDBConnection.getContentType("content_ascendant_kz").getId());
+                    } else {
+
+                        FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("ascendant_welcome"),
+                                textBytes, mDBConnection.getContentType("content_ascendant").getId());
+                    }
                     break;
                 case "да2":
                     FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("rate_welcome"),

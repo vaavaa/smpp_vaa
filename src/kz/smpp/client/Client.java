@@ -90,7 +90,6 @@ public class Client implements Runnable {
         this.rebindTask = this.timer.scheduleAtFixedRate(new RebindTask(this), 0, getRebindPeriod(), TimeUnit.SECONDS);
     }
 
-
     //Устанавливаем переодичное задание на выполнение повисшие сессии переходят в сообщения
     public void runDeadSessionTask() {
         this.deadSessionTask = this.timer.scheduleAtFixedRate(new DeadSessionTask(this, mDBConnection), 5, 15, TimeUnit.SECONDS);
@@ -180,8 +179,6 @@ public class Client implements Runnable {
             runSystemServiceTask();
             runHiddenSMSTask();
 //            runInformMonthly();
-
-
         }
     }
 
@@ -198,7 +195,7 @@ public class Client implements Runnable {
         this.ServiceTask.cancel(true);
         this.HiddenTask.cancel(true);
 //        this.InfoTask.cancel(true);
-        this.timer.shutdown();
+        this.timer.shutdownNow();
         this.timer = null;
 
         this.HiddenMessageTask = false;

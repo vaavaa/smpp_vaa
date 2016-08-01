@@ -6,7 +6,10 @@ import kz.smpp.rome.RSSFeedParser;
 import kz.smpp.utils.AllUtils;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.sql.Statement;
 
 
@@ -38,7 +41,7 @@ public class MyDBConnection {
 
         try {
 
-            String db_connect_string = "jdbc:sqlserver://127.0.0.1:1433;databaseName=smpp_clients";
+            String db_connect_string = "jdbc:sqlserver://127.0.0.1:1433;databaseName=smpp_clients;sendStringParametersAsUnicode=true";
             //String db_connect_string = "jdbc:jtds:sqlserver://127.0.0.1:1433/smpp_clients;instance=MSSQLSERVER";
             DriverManager.registerDriver(new com.microsoft.sqlserver.jdbc.SQLServerDriver());
             myConnection = DriverManager.getConnection(db_connect_string,
@@ -86,7 +89,9 @@ public class MyDBConnection {
      * @desc Method to insert data to a table
      */
     public int Update(String insertQuery) throws SQLException {
+        //InputStream is = new ByteArrayInputStream(insertQuery.getBytes(StandardCharsets.UTF_8));
         preparedStatement = myConnection.prepareStatement(insertQuery);
+        //preparedStatement.setBinaryStream(1,is,-1);
         int result = preparedStatement.executeUpdate();
         myConnection.commit();
         preparedStatement.close();
@@ -133,6 +138,7 @@ public class MyDBConnection {
         if (res.next()) {
             result = res.getInt("LIID");
         }
+        res.close();
         return result;
     }
 
@@ -538,17 +544,51 @@ public class MyDBConnection {
         }
     }
 
+    public boolean GetClientType(int id_client, int id_content_type) {
+        String SQLString = "SELECT top 1 id_client FROM client_content_type WHERE id_client=" + id_client + " AND id_content_type = " + id_content_type;
+        try {
+            ResultSet rs80 = this.query(SQLString);
+            if (rs80.next()) {
+                rs80.close();
+                return true;
+            } else {
+                rs80.close();
+                return false;
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            return false;
+        }
+    }
+
 
     public boolean setSingleSMS(SmsLine smsLine, String sms_text) {
+        PreparedStatement preparedStatement1;
+        String sql_value = smsLine.getSms_body();
         String sql_string = "INSERT INTO sms_line(id_client, sms_body, status, transaction_id, id_service) " +
-                "VALUES (" + smsLine.getId_client() + ",'"
-                + smsLine.getSms_body() + "'," + smsLine.getStatus() + ",'" +
+                "VALUES (" + smsLine.getId_client() + ",?," + smsLine.getStatus() + ",'" +
                 smsLine.getTransaction_id() + "', "+smsLine.getServiceId()+")";
         try {
-            this.Update(sql_string);
+
+            preparedStatement1 = myConnection.prepareStatement(sql_string);
+            preparedStatement1.setNString(1,sql_value);
+            preparedStatement1.executeUpdate();
+            myConnection.commit();
+            preparedStatement1.close();
+            preparedStatement1 = null;
+
+
             sql_string = "INSERT INTO client_activity(id_client, activity_text)" +
-                    " VALUES (" + smsLine.getId_client() + ",'" + sms_text + "')";
-            this.Update(sql_string);
+                    " VALUES (" + smsLine.getId_client() + ",?)";
+
+            preparedStatement1 = myConnection.prepareStatement(sql_string);
+            preparedStatement1.setNString(1,sql_value);
+            preparedStatement1.executeUpdate();
+            myConnection.commit();
+            preparedStatement1.close();
+            preparedStatement1 = null;
+
+
             return true;
         } catch (SQLException ex) {
             ex.printStackTrace();
@@ -1175,7 +1215,7 @@ public class MyDBConnection {
                     if (message.getDescription().length() > 255)
                         message.setDescription(message.getDescription().substring(0, 255));
                     SQL_string = "INSERT INTO content_ascendant VALUES (4, '" + rate_date + "', '"
-                            + message.getDescription() + "')";
+                            + message.getDescription().replace("\"", "") + "')";
                     this.Update(SQL_string);
                 }
                 rs.close();
@@ -1188,6 +1228,7 @@ public class MyDBConnection {
     }
 
     public boolean ascendant_kz() {
+        PreparedStatement preparedStatement1;
         RSSFeedParser parser = new RSSFeedParser(this.getSettings("ascendent_kz"));
         Feed feed = parser.readFeed();
         try {
@@ -1199,9 +1240,16 @@ public class MyDBConnection {
                 if (!rs.next()) {
                     if (message.getDescription().length() > 255)
                         message.setDescription(message.getDescription().substring(0, 255));
-                    SQL_string = "INSERT INTO content_ascendant_kz VALUES (6, '" + rate_date + "', '"
-                            + message.getDescription() + "')";
-                    this.Update(SQL_string);
+                    String Kaz_value = message.getDescription().replace("\"", "");
+                    SQL_string = "INSERT INTO content_ascendant_kz VALUES (7, '" + rate_date + "', ?)";
+                    preparedStatement1 = myConnection.prepareStatement(SQL_string);
+                    preparedStatement1.setNString(1,Kaz_value);
+                    preparedStatement1.executeUpdate();
+                    myConnection.commit();
+                    preparedStatement1.close();
+                    preparedStatement1 = null;
+
+                    //this.Update(SQL_string);
                 }
                 rs.close();
             }
