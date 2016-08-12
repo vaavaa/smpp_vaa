@@ -10,11 +10,12 @@ import com.cloudhopper.smpp.type.*;
 import kz.smpp.client.Client;
 import org.slf4j.LoggerFactory;
 
+import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
-public class SmppDbThread implements Callable<Integer>{
+public class SmppDbThread implements Callable<Integer> {
     public static final org.slf4j.Logger log = LoggerFactory.getLogger(SmppDbThread.class);
 
     private List<ActionClient> Acl;
@@ -34,6 +35,7 @@ public class SmppDbThread implements Callable<Integer>{
             for (ActionClient clnt : Acl) {
                 //получаем первый попавшийся адресс подписки абонента
                 String source_address = mDBConnection.getContentTypeById(clnt.getContentType()).getService_code();
+                client.DeadSessionTask_TimeStamp = Calendar.getInstance().getTimeInMillis();
                 if (source_address != null) {
                     try {
                         int SequenceNumber = 1 + (int) (Math.random() * 32000);
@@ -49,28 +51,37 @@ public class SmppDbThread implements Callable<Integer>{
                         sm.setSequenceNumber(SequenceNumber);
                         //Sing and Quit
                         if (clnt.getActionType() == 1)
+                            //подписка
                             sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_PORT, ByteArrayUtil.toByteArray((short) 3)));
                         else
+                            //Отписка
                             sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_PORT, ByteArrayUtil.toByteArray((short) 4)));
 
                         sm.calculateAndSetCommandLength();
 
-                        log.debug("Send SM");
+                        log.debug("Send SM to operator");
 
                         //Указываем сразу ошибку отправки на случай неконтролируемого сбоя
                         if (!session.isClosed() && !session.isUnbinding()) {
-                            if (mDBConnection.RemoveClientContentType(clnt.getClientId(), clnt.getContentType())) {
-                                String text_message = mDBConnection.getSettings("goodbye_message_3200");
-                                text_message = text_message.replace("?", "");
-                                FillSmsLine(clnt.getClientId(), "", text_message,
-                                        "Sdel " + clnt.getContentType(), clnt.getClientId());
+                            if (clnt.getActionType() == 2) {
+                                if (mDBConnection.RemoveClientContentType(clnt.getClientId(), clnt.getContentType())) {
+                                    String text_message = mDBConnection.getSettings("goodbye_message_3200");
+                                    text_message = text_message.replace("?", "");
+                                    FillSmsLine(clnt.getClientId(), "", text_message,
+                                            "Sdel " + clnt.getContentType(), clnt.getClientId());
+                                }
                             }
                             SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(40000));
                             if (resp.getCommandStatus() == 0) {
-                                if (clnt.getActionType() == 1) {
-
-                                }
                             }
+                            if (clnt.getActionType() == 1) {
+                                ContentType ct1 = mDBConnection.getContentType("content_ascendant_31");
+                                String text_message = mDBConnection.getSettings("ascendant_welcome_kz_31");
+                                FillSmsLine(clnt.getClientId(), "", text_message,
+                                        text_message, ct1.getId());
+                            }
+
+
                             mDBConnection.UpdateClientsOperator(client_address, resp.getCommandStatus());
                         }
                     } catch (SmppTimeoutException | SmppChannelException

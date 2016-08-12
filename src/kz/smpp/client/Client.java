@@ -46,8 +46,9 @@ public class Client implements Runnable {
 
     protected boolean HiddenMessageTask = false;
     protected boolean MessageSendTask = false;
-    protected boolean ServiceSendTask = false;
-    protected long DeadSessionTask_TimeStamp = Calendar.getInstance().getTimeInMillis() - 15000;
+    public boolean ServiceSendTask = false;
+    public boolean DeadSessionTask = false;
+    public long DeadSessionTask_TimeStamp = Calendar.getInstance().getTimeInMillis() - 15000;
     protected  int level = 0;
 
     protected MyDBConnection mDBConnection;

@@ -26,7 +26,6 @@ public class ServiceSendTask implements Runnable {
     public ServiceSendTask(Client client, MyDBConnection mDBConn) {
         this.client = client;
         mDBConnection = new MyDBConnection();
-        this.ExeService = Executors.newCachedThreadPool();
     }
 
     @Override
@@ -37,9 +36,11 @@ public class ServiceSendTask implements Runnable {
         int currentMinutes = cal.get(Calendar.MINUTE);
         if (!client.ServiceSendTask) {
             client.ServiceSendTask = true;
+            this.ExeService = Executors.newCachedThreadPool();
             if ((currentHour >= 8 && currentMinutes > 35) && currentHour < 19) metcast();
             if (currentHour >= 9 && currentHour < 19) Horoscope();
             if (currentHour >= 9 && currentHour < 19) Horoscope_kz();
+            if (currentHour >= 10 && currentHour < 19) Horoscope_kz_31();
             if (currentHour >= 9 && currentHour < 20) Rate();
             if (currentHour >= 13 && currentHour < 21) Anecdote();
             client.ServiceSendTask = false;
@@ -66,26 +67,32 @@ public class ServiceSendTask implements Runnable {
 
             Calendar cal = Calendar.getInstance();
 
-            //У нас 4 контент для гороскопа
-            if (mDBConnection.lineCountRequest(date, 5) == 0) {
-
-                RunSMSSend(4, an_value);
-                ServiceAction(4);
-            }
+            RunSMSSend(4, an_value);
+            ServiceAction(4);
         }
     }
+
     private void Horoscope_kz() {
         if (client.state == ClientState.BOUND) {
             String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
             // Создаем очередь для отправки
             String an_value = mDBConnection.getHoroscopeFromDate_kz(date);
 
-            //У нас 4 контент для гороскопа
-            if (mDBConnection.lineCountRequest(date, 5) == 0) {
+            //У нас 7 контент для гороскопа на казахском
+            RunSMSSend(7, an_value);
+            ServiceAction(7);
+        }
+    }
 
-                RunSMSSend(7, an_value);
-                ServiceAction(7);
-            }
+    private void Horoscope_kz_31() {
+        if (client.state == ClientState.BOUND) {
+            String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+            // Создаем очередь для отправки
+            String an_value = mDBConnection.getHoroscopeFromDate_kz(date);
+
+            //У нас 9 контент для гороскопа на казахском
+            RunSMSSend(9, an_value);
+            ServiceAction(9);
         }
     }
 
@@ -95,10 +102,8 @@ public class ServiceSendTask implements Runnable {
             String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
             String an_value = mDBConnection.getRateFromDate(new Date());
             //У нас третий контент для rate
-            if (mDBConnection.lineCountRequest(date, 5) == 0) {
-                RunSMSSend(3, an_value);
-                ServiceAction(3);
-            }
+            RunSMSSend(3, an_value);
+            ServiceAction(3);
         }
     }
 
@@ -108,10 +113,8 @@ public class ServiceSendTask implements Runnable {
             // Создаем очередь для отправки
             String an_value = mDBConnection.getAnecdoteFromDate(date);
             //У нас второй контент для rate
-            if (mDBConnection.lineCountRequest(date, 5) == 0) {
-                RunSMSSend(2, an_value);
-                ServiceAction(2);
-            }
+            RunSMSSend(2, an_value);
+            ServiceAction(2);
         }
     }
 
@@ -129,11 +132,11 @@ public class ServiceSendTask implements Runnable {
 
                 Calendar c = Calendar.getInstance();
                 c.setTime(new Date());
-                c.add(Calendar.DATE, -3);
+                c.add(Calendar.DATE, -7);
 
                 Calendar cSend = Calendar.getInstance();
                 cSend.setTime(new Date());
-                cSend.add(Calendar.DATE, -6);
+                cSend.add(Calendar.DATE, -7);
                 String date_Snd = new SimpleDateFormat("yyyy-MM-dd").format(cSend.getTime());
 
 
@@ -177,7 +180,7 @@ public class ServiceSendTask implements Runnable {
                 for (int i = 1; i <= sideOfPool; i++) {
                     try {
                         int ii = taskCompletionService.take().get();
-                        log.debug("Thread" + i + " is completed.");
+                        log.debug("Service thread" + i + " is completed.");
                     } catch (InterruptedException ex) {
                     } catch (ExecutionException ex) {
                     }

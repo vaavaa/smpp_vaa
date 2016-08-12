@@ -46,7 +46,7 @@ public class MyDBConnection {
             DriverManager.registerDriver(new com.microsoft.sqlserver.jdbc.SQLServerDriver());
             myConnection = DriverManager.getConnection(db_connect_string,
                     "sa", "cdmu7htt");
-
+            myConnection.setTransactionIsolation(TRANSACTION_READ_UNCOMMITTED);
             myConnection.setAutoCommit(false);
         } catch (Exception e) {
             System.out.println("Failed to get connection");
@@ -441,18 +441,27 @@ public class MyDBConnection {
     }
 
     public int setSingleSMS(SmsLine smsLine) {
+        PreparedStatement preparedStatement1;
         int ireturn = -1;
         String chk_sql_string = "SELECT id_client FROM sms_line_main WHERE id_content_type=" +
                 smsLine.getStatus() + " AND date_send = '" + smsLine.getDate() + "' AND id_client = " + smsLine.getId_client();
         try {
             ResultSet rs14 = this.query(chk_sql_string);
             if (!rs14.next()) {
+                String inserted_value = smsLine.getSms_body();
                 String sql_string = "INSERT INTO sms_line(id_client, sms_body, status, transaction_id, rate) " +
-                        "VALUES (" + smsLine.getId_client() + ",'" + smsLine.getSms_body() + "'," + smsLine.getStatus() + ",'" + smsLine.getTransaction_id() + "', '" + smsLine.getRate() + "')";
+                        "VALUES (" + smsLine.getId_client() + ",?," + smsLine.getStatus() + ",'" + smsLine.getTransaction_id() + "', '" + smsLine.getRate() + "')";
                 String sql_string1 = "INSERT INTO sms_line_main(id_client, id_content_type, date_send, rate) " +
                         "VALUES (" + smsLine.getId_client() + "," + smsLine.getStatus() + ",'" + smsLine.getDate() + "', " + smsLine.getRate() + ")";
                 rs14.close();
-                this.Update(sql_string);
+
+                preparedStatement1 = myConnection.prepareStatement(sql_string);
+                preparedStatement1.setNString(1,inserted_value);
+                preparedStatement1.executeUpdate();
+                myConnection.commit();
+                preparedStatement1.close();
+                preparedStatement1 = null;
+
                 ireturn = getLastId();
 
                 this.Update(sql_string1);

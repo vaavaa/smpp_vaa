@@ -209,24 +209,6 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
                             }
                             break;
                         }
-// else if (textBytes.lastIndexOf("????") == 0) {
-//                            int id_service0 = 0;
-//                            //если то что мы получили от абонента не попадает ни в одну из веток сверху
-//                            //Получаем на что абонент подписался
-//                            String service = mDBConnection.SignServiceName(l_addr, textBytes);
-//                            //Если он на все подписан
-//                            if (service.equals("all")) {
-//                                text_message = mDBConnection.getSettings("AllServices_message");
-//                                id_service0 = mDBConnection.getClientsContentTypes(mDBConnection.getClient(client_id)).getFirst().getId();
-//                            } else {
-//                                text_message = mDBConnection.getSettings("welcome_message_3200");
-//                                text_message = text_message.replace("?", service);
-//                                id_service0 = mDBConnection.getContentTypeByName(service).getId();
-//                                mDBConnection.setNewClientHandle(l_addr,id_service0);
-//                            }
-//                            mDBConnection.setActivityLog(client_id, textBytes);
-//                            FillSmsLine(client_id, transaction_id, text_message, textBytes, id_service0);
-//                        }
                     }
                     break;
             }

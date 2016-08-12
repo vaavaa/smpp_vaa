@@ -26,44 +26,58 @@ public class DeadSessionTask implements Runnable {
 
     @Override
     public void run() {
-        //Помечаем к отправке информационных сообщений устаревшие сессии
-        if (Calendar.getInstance().getTimeInMillis() > (client.DeadSessionTask_TimeStamp + 15000)) {
-            //mDBConnection.getFollowUpLine();
+        if (Calendar.getInstance().getTimeInMillis() > (client.DeadSessionTask_TimeStamp + 15000)) client.DeadSessionTask = false;
+        if (!client.DeadSessionTask) {
+            client.DeadSessionTask = true;
+            //Помечаем к отправке информационных сообщений устаревшие сессии
+            if (Calendar.getInstance().getTimeInMillis() > (client.DeadSessionTask_TimeStamp + 15000)) {
+                //mDBConnection.getFollowUpLine();
 
-            //устанавливаем время последней активности
-            mDBConnection.setLastActivityTime();
+                //устанавливаем время последней активности
+                //mDBConnection.setLastActivityTime();
 
-            mDBConnection.RemoveDeadSessions();
-            log.debug("Session line is cleared");
-            if (client.state == ClientState.BOUND) {
+                mDBConnection.RemoveDeadSessions();
+                log.debug("Session line is cleared");
+                if (client.state == ClientState.BOUND) {
 
-                List<ActionClient> clientList = mDBConnection.getClientsOperator();
-                if (clientList.size() > 0) {
-                    int sideOfPool = 0;
-                    CompletionService<Integer> taskCompletionService =
-                            new ExecutorCompletionService<Integer>(ExeService);
+                    List<ActionClient> clientList = mDBConnection.getClientsOperator();
+                    if (clientList.size() > 0) {
+                        int sideOfPool = 0;
+                        CompletionService<Integer> taskCompletionService =
+                                new ExecutorCompletionService<Integer>(ExeService);
 
-                    if (clientList.size() > 5) {
-                        List<List<ActionClient>> threads_source = SubList(clientList, clientList.size() / 5);
-                        for (int i = 0; i <= 5; i++) {
-                            taskCompletionService.submit(new SmppDbThread(threads_source.get(i), client));
+                        if (clientList.size() > 5) {
+                            List<List<ActionClient>> threads_source = SubList(clientList, clientList.size() / 5);
+                            for (int i = 0; i <= 5; i++) {
+                                taskCompletionService.submit(new SmppDbThread(threads_source.get(i), client));
+                            }
+                            sideOfPool = 5;
+                        } else {
+                            taskCompletionService.submit(new SmppDbThread(clientList, client));
+                            sideOfPool = 1;
                         }
-                        sideOfPool=5;
-                    } else {
-                        taskCompletionService.submit(new SmppDbThread(clientList, client));
-                        sideOfPool=1;
-                    }
-                    for (int i = 1; i<=sideOfPool;i++){
-                        try {
-                            int ii = taskCompletionService.take().get();
-                            log.debug("Thread"+i+" is completed.");}
-                        catch (InterruptedException ex){}
-                        catch (ExecutionException ex) {}
+                        for (int i = 1; i <= sideOfPool; i++) {
+                            int ii = 0;
+                            do {
+                                try {
+                                    ii = taskCompletionService.take().get(15, TimeUnit.SECONDS);
+                                    log.debug("Thread" + i + " is completed.");
+                                } catch (InterruptedException ex) {
+                                    client.DeadSessionTask = false;
+                                } catch (ExecutionException ex) {
+                                } catch (TimeoutException ex) {
+                                    if (Calendar.getInstance().getTimeInMillis() > (client.DeadSessionTask_TimeStamp + 15000)) {
+                                        break;
+                                    }
+                                }
+                            } while (ii <= 0);
+                        }
                     }
                 }
+                //ExeService.shutdownNow();
+                client.DeadSessionTask_TimeStamp = Calendar.getInstance().getTimeInMillis();
+                client.DeadSessionTask = false;
             }
-            //ExeService.shutdownNow();
-            client.DeadSessionTask_TimeStamp = Calendar.getInstance().getTimeInMillis();
         }
     }
 
