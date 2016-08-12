@@ -13,6 +13,7 @@ import kz.smpp.client.ClientState;
 import org.slf4j.LoggerFactory;
 
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -46,6 +47,7 @@ public class ServiceDbThread implements Callable<Integer> {
                     byte[] textBytes = CharsetUtil.encode(sml.getSms_body(), "UCS-2");
 
                     String source_address = mDBConnection.getContentTypeById(content_type).getService_code();
+                    client.ServiceSendTask_TimeStamp = Calendar.getInstance().getTimeInMillis();
 
                     SubmitSm sm = new SubmitSm();
                     sm.setSourceAddress(new Address((byte) 0x00, (byte) 0x01, source_address));

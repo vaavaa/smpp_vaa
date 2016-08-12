@@ -49,6 +49,8 @@ public class Client implements Runnable {
     public boolean ServiceSendTask = false;
     public boolean DeadSessionTask = false;
     public long DeadSessionTask_TimeStamp = Calendar.getInstance().getTimeInMillis() - 15000;
+    public long ServiceSendTask_TimeStamp = Calendar.getInstance().getTimeInMillis() - 15000;
+
     protected  int level = 0;
 
     protected MyDBConnection mDBConnection;

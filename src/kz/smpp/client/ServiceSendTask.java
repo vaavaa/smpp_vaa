@@ -34,6 +34,7 @@ public class ServiceSendTask implements Runnable {
         Calendar cal = Calendar.getInstance();
         int currentHour = cal.get(Calendar.HOUR_OF_DAY);
         int currentMinutes = cal.get(Calendar.MINUTE);
+        if (Calendar.getInstance().getTimeInMillis() > (client.ServiceSendTask_TimeStamp + 45000)) client.ServiceSendTask = false;
         if (!client.ServiceSendTask) {
             client.ServiceSendTask = true;
             this.ExeService = Executors.newCachedThreadPool();
@@ -43,6 +44,7 @@ public class ServiceSendTask implements Runnable {
             if (currentHour >= 10 && currentHour < 19) Horoscope_kz_31();
             if (currentHour >= 9 && currentHour < 20) Rate();
             if (currentHour >= 13 && currentHour < 21) Anecdote();
+            client.ServiceSendTask_TimeStamp = Calendar.getInstance().getTimeInMillis();
             client.ServiceSendTask = false;
         }
     }
@@ -160,8 +162,10 @@ public class ServiceSendTask implements Runnable {
     }
 
     private void ServiceAction(int TypeContent) {
+
         String currdate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
         if (client.state == ClientState.BOUND) {
+            client.ServiceSendTask_TimeStamp = Calendar.getInstance().getTimeInMillis();
             List<SmsLine> SMs = mDBConnection.getSMSLine(TypeContent);
             if (SMs.size() > 0) {
                 int sideOfPool = 0;
