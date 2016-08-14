@@ -144,12 +144,18 @@ public class Main {
             else log.debug("Null session");
             try {
                 if (Calendar.getInstance().getTimeInMillis() > (client.DeadSessionTask_TimeStamp + 65000)){
+                    client.DeadSessionTask=false;
+                    client.DeadSessionTask_TimeStamp = Calendar.getInstance().getTimeInMillis();
                     if (client.deadSessionTask != null) client.deadSessionTask.cancel(true);
                     client.runDeadSessionTask();
+                    log.debug("DeadSessionTask restarted");
                 }
                 if (Calendar.getInstance().getTimeInMillis() > (client.ServiceSendTask_TimeStamp + 65000)){
+                    client.ServiceSendTask=false;
+                    client.ServiceSendTask_TimeStamp = Calendar.getInstance().getTimeInMillis();
                     if (client.ServiceTask != null) client.ServiceTask.cancel(true);
                     client.runServiceSendTask();
+                    log.debug("ServiceTask restarted");
                 }
 
 
