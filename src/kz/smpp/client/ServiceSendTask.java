@@ -172,7 +172,7 @@ public class ServiceSendTask implements Runnable {
                 CompletionService<Integer> taskCompletionService =
                         new ExecutorCompletionService<Integer>(ExeService);
                 if (SMs.size() > 10) {
-                    List<List<SmsLine>> threads_source = SubList(SMs, SMs.size() / 10);
+                    List<List<SmsLine>> threads_source = SubList(SMs, SMs.size() /10);
                     for (int i = 0; i <= 10; i++) {
                         taskCompletionService.submit(new ServiceDbThread(threads_source.get(i), client, TypeContent));
                     }

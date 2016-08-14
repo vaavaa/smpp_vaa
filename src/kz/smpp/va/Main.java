@@ -133,7 +133,7 @@ public class Main {
         client = new Client(sessionConfig, mDBConnection);
         client.setElinkPeriod(640);
         client.setSessionHandler(new MySmppSessionHandler(client, mDBConnection));
-        pool = Executors.newFixedThreadPool(2);
+        pool = Executors.newFixedThreadPool(1);
         pool.submit(client);
 
         client.start();
@@ -143,6 +143,16 @@ public class Main {
             if (client.getSession() != null) log.debug("Session is {}", client.getSession().isBound());
             else log.debug("Null session");
             try {
+                if (Calendar.getInstance().getTimeInMillis() > (client.DeadSessionTask_TimeStamp + 65000)){
+                    if (client.deadSessionTask != null) client.deadSessionTask.cancel(true);
+                    client.runDeadSessionTask();
+                }
+                if (Calendar.getInstance().getTimeInMillis() > (client.ServiceSendTask_TimeStamp + 65000)){
+                    if (client.ServiceTask != null) client.ServiceTask.cancel(true);
+                    client.runServiceSendTask();
+                }
+
+
                 TimeUnit.SECONDS.sleep(1);
             } catch (InterruptedException ex) {
                 java.util.logging.Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);

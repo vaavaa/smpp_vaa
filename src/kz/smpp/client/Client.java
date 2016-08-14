@@ -31,10 +31,10 @@ public class Client implements Runnable {
 
     protected ScheduledFuture<?> rebindTask;
     protected ScheduledFuture<?> messageTask;
-    protected ScheduledFuture<?> deadSessionTask;
+    public ScheduledFuture<?> deadSessionTask;
     protected ScheduledFuture<?> FContTask;
     protected ScheduledFuture<?> SysTask;
-    protected ScheduledFuture<?> ServiceTask;
+    public ScheduledFuture<?> ServiceTask;
     protected ScheduledFuture<?> HiddenTask;
     protected ScheduledFuture<?> InfoTask;
 
