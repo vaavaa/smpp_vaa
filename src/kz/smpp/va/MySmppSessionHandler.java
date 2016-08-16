@@ -190,6 +190,9 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
                             case "32006":
                                 smLn.setRate("7");
                                 break;
+                            case "3100":
+                                smLn.setRate("9");
+                                break;
                         }
                         //Сумма которую снимаем с клиента
                         smLn.setTransaction_id("20");
