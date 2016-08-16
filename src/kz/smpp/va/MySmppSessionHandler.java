@@ -126,7 +126,12 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
                     break;
                 case "stop1":
                 case "стоп1":
-                    ContentType ct1 = mDBConnection.getContentType("content_rate");
+                    ContentType ct1;
+                    if (dest_addr.equals("3100"))
+                        ct1 = mDBConnection.getContentType("content_ascendant");
+                    else
+                        ct1 = mDBConnection.getContentType("content_ascendant_31");
+
                     if (mDBConnection.RemoveClientContentType(client_id, ct1.getId())) {
                         text_message = mDBConnection.getSettings("goodbye_message_3200");
                         text_message = text_message.replace("?", ct1.getName());
