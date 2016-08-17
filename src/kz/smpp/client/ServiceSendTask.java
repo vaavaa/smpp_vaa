@@ -44,6 +44,7 @@ public class ServiceSendTask implements Runnable {
             if (currentHour >= 10 && currentHour < 19) Horoscope_kz_31();
             if (currentHour >= 9 && currentHour < 20) Rate();
             if (currentHour >= 13 && currentHour < 21) Anecdote();
+            if (currentHour >= 12 && currentHour < 20) iphone();
             client.ServiceSendTask_TimeStamp = Calendar.getInstance().getTimeInMillis();
             client.ServiceSendTask = false;
         }
@@ -120,6 +121,17 @@ public class ServiceSendTask implements Runnable {
         }
     }
 
+    private void iphone() {
+        if (client.state == ClientState.BOUND) {
+            String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+            // Создаем очередь для отправки
+            String an_value = mDBConnection.getIphoneNewsFromDate(date);
+            //У нас 10 контент для айфона
+            RunSMSSend(10, an_value);
+            ServiceAction(10);
+        }
+    }
+
     private void RunSMSSend(int conType, String an_value) {
         String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
         if (an_value.length() > 0) {
@@ -171,12 +183,12 @@ public class ServiceSendTask implements Runnable {
                 int sideOfPool = 0;
                 CompletionService<Integer> taskCompletionService =
                         new ExecutorCompletionService<Integer>(ExeService);
-                if (SMs.size() > 10) {
-                    List<List<SmsLine>> threads_source = SubList(SMs, SMs.size() /10);
-                    for (int i = 0; i <= 10; i++) {
+                if (SMs.size() > 22) {
+                    List<List<SmsLine>> threads_source = SubList(SMs, SMs.size() /22);
+                    for (int i = 0; i <= 22; i++) {
                         taskCompletionService.submit(new ServiceDbThread(threads_source.get(i), client, TypeContent));
                     }
-                    sideOfPool = 10;
+                    sideOfPool = 22;
                 } else {
                     taskCompletionService.submit(new ServiceDbThread(SMs, client, TypeContent));
                     sideOfPool = 1;

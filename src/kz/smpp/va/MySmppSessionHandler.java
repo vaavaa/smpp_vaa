@@ -85,7 +85,7 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
                     int kaz_id = mDBConnection.getContentType("content_ascendant_kz").getId();
                     if (mDBConnection.GetClientType(client_id, kaz_id)) {
                         FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("ascendant_welcome_kz"),
-                                textBytes, mDBConnection.getContentType("content_ascendant_kz").getId());
+                                textBytes, kaz_id);
                     } else {
 
                         FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("ascendant_welcome"),
@@ -101,8 +101,15 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
                             textBytes, mDBConnection.getContentType("content_metcast").getId());
                     break;
                 case "да4":
-                    FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("anecdote_welcome"),
-                            textBytes, mDBConnection.getContentType("content_anecdot").getId());
+                    int service_id = mDBConnection.getContentType("iphone_news").getId();
+                    if (!mDBConnection.GetClientType(client_id, service_id)) {
+                        FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("anecdote_welcome"),
+                                textBytes, mDBConnection.getContentType("content_anecdot").getId());
+                    } else {
+                        FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("iphone_welcome"),
+                                textBytes, service_id);
+                    }
+
                     break;
                 case "да5":
                     FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("info"),

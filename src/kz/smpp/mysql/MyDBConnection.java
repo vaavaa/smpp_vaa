@@ -1045,6 +1045,26 @@ public class MyDBConnection {
         return vle;
     }
 
+    public String getIphoneNewsFromDate(String dte) {
+
+        //Выбираем из контент тайпа на эту дату
+        //Вставляем его в исходящие сообщения со статусом 2 - анекдот, по всем клиентам, кто подписался на анекдот
+        //Отправляем. Смотрим когда клиент подписался на сервис, если текущая дата больше чем 3 дня то отправляем за деньги,
+        //если нет, то отправляем пустым.
+        //Результат отправки пишем в исходящие, в двух таблицах
+
+        String sql_string = "SELECT top 1 value FROM content_iphone WHERE _date='" + dte + "'";
+        String vle = "";
+        try {
+            ResultSet rs = this.query(sql_string);
+            if (rs.next()) vle = rs.getString("value");
+            rs.close();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return vle;
+    }
+
     public String getRateFromDate(Date dte) {
         //переводим дату в формат mySQL
         String date_string = new SimpleDateFormat("yyyy-MM-dd").format(dte);
