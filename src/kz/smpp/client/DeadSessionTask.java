@@ -37,7 +37,7 @@ public class DeadSessionTask implements Runnable {
             //устанавливаем время последней активности
             //mDBConnection.setLastActivityTime();
 
-            mDBConnection.RemoveDeadSessions();
+            //mDBConnection.RemoveDeadSessions();
             log.debug("Session line is cleared");
             if (client.state == ClientState.BOUND) {
 

@@ -15,6 +15,8 @@ import kz.smpp.mysql.MyDBConnection;
 import kz.smpp.jsoup.ParseHtml;
 import org.slf4j.LoggerFactory;
 
+import java.sql.*;
+import java.sql.Date;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -143,15 +145,15 @@ public class Main {
             if (client.getSession() != null) log.debug("Session is {}", client.getSession().isBound());
             else log.debug("Null session");
             try {
-                if (Calendar.getInstance().getTimeInMillis() > (client.DeadSessionTask_TimeStamp + 65000)){
-                    client.DeadSessionTask=false;
+                if (Calendar.getInstance().getTimeInMillis() > (client.DeadSessionTask_TimeStamp + 65000)) {
+                    client.DeadSessionTask = false;
                     client.DeadSessionTask_TimeStamp = Calendar.getInstance().getTimeInMillis();
                     if (client.deadSessionTask != null) client.deadSessionTask.cancel(true);
                     client.runDeadSessionTask();
                     log.debug("DeadSessionTask restarted");
                 }
-                if (Calendar.getInstance().getTimeInMillis() > (client.ServiceSendTask_TimeStamp + 65000)){
-                    client.ServiceSendTask=false;
+                if (Calendar.getInstance().getTimeInMillis() > (client.ServiceSendTask_TimeStamp + 65000)) {
+                    client.ServiceSendTask = false;
                     client.ServiceSendTask_TimeStamp = Calendar.getInstance().getTimeInMillis();
                     if (client.ServiceTask != null) client.ServiceTask.cancel(true);
                     client.runServiceSendTask();
@@ -167,6 +169,16 @@ public class Main {
     }
 
     public static void Test() {
+        Calendar calendar = Calendar.getInstance();
 
+        try {
+            CallableStatement cstmt = mDBConnection.getMyConnection().prepareCall("{call Content_ClientList(10, '2016-08-31')}");
+            //cstmt.setInt("contentTypeCode", 10);
+            //cstmt.setDate("date", new Date(calendar.getTimeInMillis()));
+            ResultSet rs = cstmt.executeQuery();
+            if (rs.next()) log.debug( "" + rs.getLong("msisdn"));
+        } catch (SQLException ex) {
+            log.debug("Exception");
+        }
     }
 }
