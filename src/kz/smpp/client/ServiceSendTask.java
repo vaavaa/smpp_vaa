@@ -40,9 +40,9 @@ public class ServiceSendTask implements Runnable {
             this.ExeService = Executors.newCachedThreadPool();
             if ((currentHour >= 8 && currentMinutes > 35) && currentHour < 19) metcast();
             if (currentHour >= 9 && currentHour < 19) Horoscope();
+            if (currentHour >= 9 && currentHour < 20) Rate();
             if (currentHour >= 9 && currentHour < 19) Horoscope_kz();
             if (currentHour >= 10 && currentHour < 19) Horoscope_kz_31();
-            if (currentHour >= 9 && currentHour < 20) Rate();
             if (currentHour >= 13 && currentHour < 21) Anecdote();
             if (currentHour >= 12 && currentHour < 20) iphone();
             client.ServiceSendTask_TimeStamp = Calendar.getInstance().getTimeInMillis();
