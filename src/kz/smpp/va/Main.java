@@ -90,8 +90,8 @@ public class Main {
                 log.debug("Done. DB is updated with metcast");
                 return true;
             case "get anecdote":
-                ParseHtml phtml = new ParseHtml(mDBConnection.getSettings("anecdote"));
-                phtml.close();
+                //ParseHtml phtml = new ParseHtml(mDBConnection.getSettings("anecdote"));
+                //phtml.close();
                 log.debug("Done. DB is updated with anecdote");
                 return true;
             case "get horoscope":
@@ -169,16 +169,9 @@ public class Main {
     }
 
     public static void Test() {
-        Calendar calendar = Calendar.getInstance();
+        ParseHtml phtml = new ParseHtml("http://w-o-s.ru/word/5856");
+        phtml.close();
+        log.debug("Done. DB is updated with anecdote");
 
-        try {
-            CallableStatement cstmt = mDBConnection.getMyConnection().prepareCall("{call Content_ClientList(10, '2016-08-31')}");
-            //cstmt.setInt("contentTypeCode", 10);
-            //cstmt.setDate("date", new Date(calendar.getTimeInMillis()));
-            ResultSet rs = cstmt.executeQuery();
-            if (rs.next()) log.debug( "" + rs.getLong("msisdn"));
-        } catch (SQLException ex) {
-            log.debug("Exception");
-        }
     }
 }

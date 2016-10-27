@@ -38,21 +38,24 @@ public class ServiceSendTask implements Runnable {
         if (!client.ServiceSendTask) {
             client.ServiceSendTask = true;
             this.ExeService = Executors.newCachedThreadPool();
-            if ((currentHour >= 8 && currentMinutes > 35) && currentHour < 19) metcast();
-            if (currentHour >= 9 && currentHour < 19) Horoscope();
-            if (currentHour >= 9 && currentHour < 20) Rate();
-            if (currentHour >= 9 && currentHour < 19) Horoscope_kz();
-            if (currentHour >= 10 && currentHour < 19) Horoscope_kz_31();
-            if (currentHour >= 13 && currentHour < 21) Anecdote();
-            if (currentHour >= 12 && currentHour < 20) iphone();
+
+            String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+
+            if ((currentHour >= 8 && currentMinutes > 35) && currentHour < 19) metcast(date);
+            if (currentHour >= 9 && currentHour < 19) Horoscope(date);
+            if (currentHour >= 9 && currentHour < 20) Rate(date);
+            if (currentHour >= 9 && currentHour < 19) Horoscope_kz(date);
+            if (currentHour >= 10 && currentHour < 19) Horoscope_kz_31(date);
+            if (currentHour >= 13 && currentHour < 21) Anecdote(date);
+            if (currentHour >= 12 && currentHour < 20) iphone(date);
+            if (currentHour >= 12 && currentHour < 20) days_word(date);
             client.ServiceSendTask_TimeStamp = Calendar.getInstance().getTimeInMillis();
             client.ServiceSendTask = false;
         }
     }
 
-    private void metcast() {
+    private void metcast(String date) {
         if (client.state == ClientState.BOUND) {
-            String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
             // Создаем очередь для отправки
             String an_value = mDBConnection.getMetcastFromDate(date);
             //У нас 5 контент для погоды
@@ -62,9 +65,9 @@ public class ServiceSendTask implements Runnable {
 
     }
 
-    private void Horoscope() {
+    private void Horoscope(String date) {
         if (client.state == ClientState.BOUND) {
-            String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+
             // Создаем очередь для отправки
             String an_value = mDBConnection.getHoroscopeFromDate(date);
 
@@ -75,9 +78,9 @@ public class ServiceSendTask implements Runnable {
         }
     }
 
-    private void Horoscope_kz() {
+    private void Horoscope_kz(String date) {
         if (client.state == ClientState.BOUND) {
-            String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+
             // Создаем очередь для отправки
             String an_value = mDBConnection.getHoroscopeFromDate_kz(date);
 
@@ -87,9 +90,9 @@ public class ServiceSendTask implements Runnable {
         }
     }
 
-    private void Horoscope_kz_31() {
+    private void Horoscope_kz_31(String date) {
         if (client.state == ClientState.BOUND) {
-            String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+
             // Создаем очередь для отправки
             String an_value = mDBConnection.getHoroscopeFromDate_kz(date);
 
@@ -99,10 +102,10 @@ public class ServiceSendTask implements Runnable {
         }
     }
 
-    private void Rate() {
+    private void Rate(String date) {
         if (client.state == ClientState.BOUND) {
             // Создаем очередь для отправки
-            String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+
             String an_value = mDBConnection.getRateFromDate(new Date());
             //У нас третий контент для rate
             RunSMSSend(3, an_value);
@@ -110,9 +113,10 @@ public class ServiceSendTask implements Runnable {
         }
     }
 
-    private void Anecdote() {
+    private void Anecdote(String date) {
         if (client.state == ClientState.BOUND) {
-            String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+
+
             // Создаем очередь для отправки
             String an_value = mDBConnection.getAnecdoteFromDate(date);
             //У нас второй контент для rate
@@ -121,14 +125,24 @@ public class ServiceSendTask implements Runnable {
         }
     }
 
-    private void iphone() {
+    private void iphone(String date) {
         if (client.state == ClientState.BOUND) {
-            String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+
             // Создаем очередь для отправки
             String an_value = mDBConnection.getIphoneNewsFromDate(date);
             //У нас 10 контент для айфона
             RunSMSSend(10, an_value);
             ServiceAction(10);
+        }
+    }
+
+    private void days_word(String date) {
+        if (client.state == ClientState.BOUND) {
+            // Создаем очередь для отправки
+            String an_value = mDBConnection.getDays_Word(date);
+            //У нас 10 контент для айфона
+            RunSMSSend(11, an_value);
+            ServiceAction(11);
         }
     }
 

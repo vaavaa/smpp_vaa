@@ -93,8 +93,14 @@ public class MySmppSessionHandler extends DefaultSmppSessionHandler {
                     }
                     break;
                 case "да2":
-                    FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("rate_welcome"),
-                            textBytes, mDBConnection.getContentType("content_rate").getId());
+                    int days_word = mDBConnection.getContentType("content_word").getId();
+                    if (!mDBConnection.GetClientType(client_id, days_word)) {
+                        FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("rate_welcome"),
+                                textBytes, mDBConnection.getContentType("content_rate").getId());
+                    }else {
+                        FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("word_welcome"),
+                                textBytes, mDBConnection.getContentType("content_word").getId());
+                    }
                     break;
                 case "да3":
                     FillSmsLine(client_id, transaction_id, mDBConnection.getSettings("metcast_welcome"),
