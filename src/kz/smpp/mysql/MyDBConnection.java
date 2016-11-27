@@ -1142,8 +1142,9 @@ public class MyDBConnection {
     public boolean backupData(String crnt_hr, String crnt_date) {
         boolean status = false;
         try {
-            String sql_step2 = "BACKUP DATABASE [smpp_clients] TO  DISK = N'E:\\smpp\\bkp\\smpp_clients_" + crnt_date + "_" + crnt_hr + ".bak',  DISK = N'C:\\SMPP\\backups\\smpp_clients_" + crnt_date + "_" + crnt_hr + ".bak' WITH NOFORMAT, INIT,  NAME = N'smpp_clients_Backup', SKIP, NOREWIND, NOUNLOAD,  STATS = 10";
-            status = !this.UpdateSystem_task(sql_step2);
+            //DISK = N'E:\smpp\bkp\smpp_clients_" + crnt_date + "_" + crnt_hr + ".bak',
+            //String sql_step2 = "BACKUP DATABASE [smpp_clients] TO DISK = N'C:\\SMPP\\backups\\smpp_clients_" + crnt_date + "_" + crnt_hr + ".bak' WITH NOFORMAT, INIT,  NAME = N'smpp_clients_Backup', SKIP, NOREWIND, NOUNLOAD,  STATS = 10";
+            //status = !this.UpdateSystem_task(sql_step2);
         } catch (Exception e) {
             log.error(e.toString() + "/" + e.getCause().toString());
             status = false;
