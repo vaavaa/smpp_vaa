@@ -56,22 +56,28 @@ public class ServiceDbThread implements Callable<Integer> {
                     sm.setEsmClass((byte) 0);
                     sm.setShortMessage(null);
                     sm.setSequenceNumber(SequenceNumber);
+
                     //Все сообщения по 0 тарифу, но попадают они сюда если в Hidden появилась запись запись с суммой <20
                     sm.setOptionalParameter(new Tlv(SmppConstants.TAG_SOURCE_SUBADDRESS, mDBConnection.getSettings("0").getBytes(), "sourcesub_address"));
                     sm.setOptionalParameter(new Tlv(SmppConstants.TAG_MESSAGE_PAYLOAD, textBytes, "messagePayload"));
                     sm.calculateAndSetCommandLength();
                     sml.setStatus(-1);
                     if (!session.isClosed() && !session.isUnbinding()) {
-                        SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(40000));
-                        log.debug("SM sent" + sm.toString());
+                        //Получаем смс готовую к отправке, если ее статус еще не отправлен, то мы ее отправляем
+                        //Иначе просто игнорируем эту отправку
+                        SmsLine sml_check = mDBConnection.getSingleSMS(sml.getId_sms());
+                        if (sml_check.getStatus() != 1) {
+                            SubmitSmResp resp = session.submit(sm, TimeUnit.SECONDS.toMillis(40000));
+                            log.debug("SM sent" + sm.toString());
 
-                        if (resp.getCommandStatus() != 0) {
-                            sml.setErr_code(Integer.toString(resp.getCommandStatus()));
-                            sml.setStatus(-1);
-                            mDBConnection.UpdateSMSLine(sml);
-                        } else {
-                            sml.setStatus(1);
-                            mDBConnection.UpdateSMSLine(sml);
+                            if (resp.getCommandStatus() != 0) {
+                                sml.setErr_code(Integer.toString(resp.getCommandStatus()));
+                                sml.setStatus(-1);
+                                mDBConnection.UpdateSMSLine(sml);
+                            } else {
+                                sml.setStatus(1);
+                                mDBConnection.UpdateSMSLine(sml);
+                            }
                         }
                     }
                 } catch (SmppTimeoutException | SmppChannelException

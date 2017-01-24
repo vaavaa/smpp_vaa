@@ -9,14 +9,10 @@ import com.cloudhopper.smpp.pdu.SubmitSm;
 import com.cloudhopper.smpp.pdu.SubmitSmResp;
 import com.cloudhopper.smpp.type.LoggingOptions;
 import com.cloudhopper.smpp.type.SmppInvalidArgumentException;
-import com.sun.deploy.Environment;
 import kz.smpp.client.Client;
 import kz.smpp.mysql.MyDBConnection;
-import kz.smpp.jsoup.ParseHtml;
 import org.slf4j.LoggerFactory;
 
-import java.sql.*;
-import java.sql.Date;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -169,9 +165,7 @@ public class Main {
     }
 
     public static void Test() {
-        ParseHtml phtml = new ParseHtml("http://w-o-s.ru/word/5856");
-        phtml.close();
-        log.debug("Done. DB is updated with anecdote");
+
 
     }
 }

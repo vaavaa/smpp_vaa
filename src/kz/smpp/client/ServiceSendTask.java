@@ -189,14 +189,12 @@ public class ServiceSendTask implements Runnable {
 
     private void ServiceAction(int TypeContent) {
 
-        String currdate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
         if (client.state == ClientState.BOUND) {
             client.ServiceSendTask_TimeStamp = Calendar.getInstance().getTimeInMillis();
             List<SmsLine> SMs = mDBConnection.getSMSLine(TypeContent);
             if (SMs.size() > 0) {
                 int sideOfPool = 0;
-                CompletionService<Integer> taskCompletionService =
-                        new ExecutorCompletionService<Integer>(ExeService);
+                CompletionService<Integer> taskCompletionService = new ExecutorCompletionService<Integer>(ExeService);
                 if (SMs.size() > 22) {
                     List<List<SmsLine>> threads_source = SubList(SMs, SMs.size() /22);
                     for (int i = 0; i <= 22; i++) {

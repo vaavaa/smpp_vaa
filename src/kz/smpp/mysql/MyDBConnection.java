@@ -676,8 +676,8 @@ public class MyDBConnection {
     }
 
     public SmsLine getSingleSMS(int sms_id) {
-        String sql_string = "SELECT id_sms, id_client, sms_body, status, " +
-                "transaction_id FROM sms_line    WHERE id_sms=" + sms_id;
+        String sql_string = "SELECT TOP 1 id_sms, id_client, sms_body, status, " +
+                "transaction_id FROM sms_line WHERE id_sms=" + sms_id;
         SmsLine sm = new SmsLine();
         try {
             ResultSet rs = this.query(sql_string);
@@ -699,7 +699,7 @@ public class MyDBConnection {
         List<SmsLine> smsLines = new ArrayList<>();
         String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
         String sql_string = "SELECT id_sms, id_client, sms_body, status, " +
-                "transaction_id, rate, id_service FROM sms_line    WHERE status=" + line_status + " AND created_time > '" + date + "'";
+                "transaction_id, rate, id_service FROM sms_line WHERE status=" + line_status + " AND created_time > '" + date + "'";
         try {
             ResultSet rs = this.query(sql_string);
             while (rs.next()) {
