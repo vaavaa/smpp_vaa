@@ -1,7 +1,8 @@
 <component name="libraryTable">
   <library name="sqljdbc42">
     <CLASSES>
-      <root url="jar://$PROJECT_DIR$/../MSSQL_JDBC/sqljdbc_4.2/enu/sqljdbc42.jar!/" />
+      <root url="jar://$PROJECT_DIR$/.idea/libraries/sqljdbc42.jar!/" />
+      <root url="jar://$PROJECT_DIR$/.idea/libraries/jtds-1.3.1.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

@@ -10,6 +10,7 @@ import com.cloudhopper.smpp.pdu.SubmitSmResp;
 import com.cloudhopper.smpp.type.LoggingOptions;
 import com.cloudhopper.smpp.type.SmppInvalidArgumentException;
 import kz.smpp.client.Client;
+import kz.smpp.jsoup.ParseHtml;
 import kz.smpp.mysql.MyDBConnection;
 import org.slf4j.LoggerFactory;
 
@@ -82,7 +83,11 @@ public class Main {
                 log.debug("Done. DB is updated with rate");
                 return true;
             case "get metcast":
-                mDBConnection.metcast();
+                //mDBConnection.metcast();
+                ParseHtml phtml = new ParseHtml(mDBConnection.getSettings("anecdote"));
+                phtml.close();
+
+
                 log.debug("Done. DB is updated with metcast");
                 return true;
             case "get anecdote":

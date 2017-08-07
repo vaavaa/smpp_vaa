@@ -6,10 +6,6 @@ import kz.smpp.rome.RSSFeedParser;
 import kz.smpp.utils.AllUtils;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.sql.Statement;
 
 
@@ -23,7 +19,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Date;
 
-import static java.sql.Connection.TRANSACTION_READ_COMMITTED;
+
 import static java.sql.Connection.TRANSACTION_READ_UNCOMMITTED;
 
 
@@ -42,7 +38,6 @@ public class MyDBConnection {
         try {
 
             String db_connect_string = "jdbc:sqlserver://127.0.0.1:1433;databaseName=smpp_clients;sendStringParametersAsUnicode=true";
-            //String db_connect_string = "jdbc:jtds:sqlserver://127.0.0.1:1433/smpp_clients;instance=MSSQLSERVER";
             DriverManager.registerDriver(new com.microsoft.sqlserver.jdbc.SQLServerDriver());
             myConnection = DriverManager.getConnection(db_connect_string,
                     "sa", "cdmu7htt");
