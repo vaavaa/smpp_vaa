@@ -77,8 +77,8 @@ public class SmppDbThread implements Callable<Integer> {
                             if (clnt.getActionType() == 1) {
                                 ContentType ct1 = mDBConnection.getContentType("content_ascendant_31");
                                 String text_message = mDBConnection.getSettings("ascendant_welcome_kz_31");
-                                FillSmsLine(clnt.getClientId(), "", text_message,
-                                        text_message, ct1.getId());
+                                //FillSmsLine(clnt.getClientId(), "", text_message,
+                                        //text_message, ct1.getId());
                             }
 
 

@@ -3,8 +3,11 @@
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/.idea/libraries/sqljdbc42.jar!/" />
       <root url="jar://$PROJECT_DIR$/.idea/libraries/jtds-1.3.1.jar!/" />
+      <root url="jar://E:/JAVA/selenium/selenium-server-standalone-3.5.0.jar!/" />
+      <root url="file://E:/JAVA/selenium" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />
+    <jarDirectory url="file://E:/JAVA/selenium" recursive="false" />
   </library>
 </component>

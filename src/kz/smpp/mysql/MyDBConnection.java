@@ -116,7 +116,6 @@ public class MyDBConnection {
     }
 
     public void setSettings(String settingsName, String value) {
-        String settingsValue = null;
         try {
             String SQL_string = "Update smpp_settings SET value = '" + value + "' WHERE name='" + settingsName + "'";
             Update(SQL_string);
@@ -139,9 +138,15 @@ public class MyDBConnection {
 
     public client getClient(int id) {
         client l_client = new client();
-        String sql_string = "SELECT * FROM clients   WHERE id = " + id;
+        //String sql_string = "SELECT * FROM clients  with(nolock) WHERE id = " + id;
         try {
-            ResultSet rs1 = this.query(sql_string);
+            String SPsql = "EXEC [getClient] ?";   // for stored proc taking 2 parameters
+            PreparedStatement ps = myConnection.prepareStatement(SPsql);
+            ps.setEscapeProcessing(true);
+            ps.setQueryTimeout(200);
+            ps.setString(1, "" + id);
+            ResultSet rs1 = ps.executeQuery();
+            //ResultSet rs1 = this.query(sql_string);
             if (rs1.next()) {
                 l_client.setId(rs1.getInt("id"));
                 l_client.setAddrs(rs1.getLong("msisdn"));
@@ -210,9 +215,15 @@ public class MyDBConnection {
 
     public client getClient(long msisdn) {
         client l_client = new client();
-        String sql_string = "SELECT * FROM clients WHERE msisdn = " + msisdn;
+        //String sql_string = "SELECT * FROM clients with(nolock) WHERE msisdn = " + msisdn;
         try {
-            ResultSet rs4 = this.query(sql_string);
+            String SPsql = "EXEC [getClientMSDN] ?";   // for stored proc taking 2 parameters
+            PreparedStatement ps = myConnection.prepareStatement(SPsql);
+            ps.setEscapeProcessing(true);
+            ps.setQueryTimeout(200);
+            ps.setString(1, "" + msisdn);
+            ResultSet rs4 = ps.executeQuery();
+            //ResultSet rs4 = this.query(sql_string);
             if (rs4.next()) {
                 l_client.setId(rs4.getInt("id"));
                 l_client.setAddrs(rs4.getLong("msisdn"));
@@ -228,9 +239,15 @@ public class MyDBConnection {
     public client setNewClient(long msisdn) {
         client l_client = new client();
         log.debug("Log 000_ " + msisdn);
-        String sql_string = "SELECT TOP 1 id FROM clients   WHERE msisdn= " + msisdn;
+        String sql_string = "";//"SELECT TOP 1 id FROM clients  with(nolock) WHERE msisdn= " + msisdn;
         try {
-            ResultSet rs5 = this.query(sql_string);
+            String SPsql = "EXEC [getClientMSDN] ?";   // for stored proc taking 2 parameters
+            PreparedStatement ps = myConnection.prepareStatement(SPsql);
+            ps.setEscapeProcessing(true);
+            ps.setQueryTimeout(200);
+            ps.setString(1, "" + msisdn);
+            ResultSet rs5 = ps.executeQuery();
+            //ResultSet rs5 = this.query(sql_string);
             if (rs5.next()) {
                 l_client.setStatus(0);
                 l_client.setAddrs(msisdn);
@@ -264,7 +281,7 @@ public class MyDBConnection {
 
     public LinkedList<ContentType> getClientsContentTypes(client l_client) {
         LinkedList<ContentType> lct = new LinkedList<>();
-        String sql_string = "SELECT content_type.* FROM client_content_type left join content_type " +
+        String sql_string = "SELECT content_type.* FROM client_content_type with(nolock) left join content_type " +
                 "on content_type.id = client_content_type.id_content_type WHERE client_content_type.status = 0 and client_content_type.id_client = " + l_client.getId();
         try {
             ResultSet rs6 = this.query(sql_string);
@@ -286,7 +303,7 @@ public class MyDBConnection {
 
     public client setStopClient(long msisdn) {
         client l_client = new client();
-        String sql_string = "SELECT * FROM clients    WHERE msisdn= " + msisdn;
+        String sql_string = "SELECT * FROM clients  with(nolock)  WHERE msisdn= " + msisdn;
         try {
             ResultSet rs7 = this.query(sql_string);
             if (rs7.next()) {
@@ -315,7 +332,7 @@ public class MyDBConnection {
     public LinkedList<ContentType> getClientsContentTypes(client l_client, ContentType contenttype) {
         LinkedList<ContentType> lct = new LinkedList<>();
         String sql_string = "SELECT content_type.* FROM client_content_type left join content_type " +
-                "on content_type.id = client_content_type.id_content_type WHERE client_content_type.id_client = " + l_client.getId() + " " +
+                "on content_type.id = client_content_type.id_content_type with(nolock) WHERE client_content_type.id_client = " + l_client.getId() + " " +
                 " AND client_content_type.id_content_type = " + contenttype.getId();
         try {
             ResultSet rs8 = this.query(sql_string);
@@ -361,12 +378,15 @@ public class MyDBConnection {
         List<client> lct = new ArrayList<>();
         //Раз мы используем туже таблицу для анализа отправки сообщений, то  статусы отправленых сообщений мы сделали
         //101 и -101 в случае ошибки отправки.
-        String sql_string = "SELECT id_client, msisdn, MIN(update_date) as updDte FROM clients left join client_content_type " +
-                "ON id=id_client WHERE clients.status= 0 AND '" + date + "' >= DATEADD(mm,1,update_date) AND id_client NOT IN " +
-                "(SELECT id_client FROM sms_line    WHERE (status = 101 or status = -101) AND created_time between " +
-                "DATEADD(mm,-1, '" + date + "') AND DATEADD(dd, 1, '" + date + "')) GROUP by id_client, msisdn";
+        //String sql_string = "SELECT id_client, msisdn, MIN(update_date) as updDte FROM clients left join client_content_type " +
+        //        "ON id=id_client with(nolock) WHERE clients.status= 0 AND '" + date + "' >= DATEADD(mm,1,update_date) AND id_client NOT IN " +
+        //        "(SELECT id_client FROM sms_line  with(nolock)  WHERE (status = 101 or status = -101) AND created_time between " +
+        //        "DATEADD(mm,-1, '" + date + "') AND DATEADD(dd, 1, '" + date + "')) GROUP by id_client, msisdn";
+
         try {
-            ResultSet rs11 = this.query(sql_string);
+            CallableStatement cstmt = getMyConnection().prepareCall("{call getClientsFromContentType('" + date + "')}");
+
+            ResultSet rs11 = cstmt.executeQuery(); //this.query(sql_string);
             while (rs11.next()) {
                 client cl = new client();
                 cl.setId(rs11.getInt("id_client"));
@@ -384,9 +404,9 @@ public class MyDBConnection {
     public List<client> getClientsFromContentTypeHidden(int contentTypeCode, String date) {
         List<client> lct = new ArrayList<>();
         String sql_string = "SELECT id_client, msisdn, update_date FROM client_content_type left join clients " +
-                "ON id_client=id WHERE clients.status= 0 AND id_content_type =" + contentTypeCode + " AND update_date < DATEADD(dd,-3,GETDATE()) " +
+                "ON id_client=id with(nolock) WHERE clients.status= 0 AND id_content_type =" + contentTypeCode + " AND update_date < DATEADD(dd,-3,GETDATE()) " +
                 " AND id_client NOT IN " +
-                "(SELECT id_client FROM sms_line_quiet WHERE id_content_type = " + contentTypeCode + " AND date_send = '" + date + "')";
+                "(SELECT id_client FROM sms_line_quiet with(nolock) WHERE id_content_type = " + contentTypeCode + " AND date_send = '" + date + "')";
         try {
             ResultSet rs12 = this.query(sql_string);
             while (rs12.next()) {
@@ -440,7 +460,7 @@ public class MyDBConnection {
     public int setSingleSMS(SmsLine smsLine) {
         PreparedStatement preparedStatement1;
         int ireturn = -1;
-        String chk_sql_string = "SELECT id_client FROM sms_line_main    WHERE id_content_type=" +
+        String chk_sql_string = "SELECT id_client FROM sms_line_main  with(nolock)  WHERE id_content_type=" +
                 smsLine.getStatus() + " AND date_send = '" + smsLine.getDate() + "' AND id_client = " + smsLine.getId_client();
         try {
             ResultSet rs14 = this.query(chk_sql_string);
@@ -475,7 +495,7 @@ public class MyDBConnection {
     }
 
     public boolean checkPayment(int ClientId, int conType, String date) {
-        String sql_string = "SELECT TOP 1 id_client FROM sms_line_quiet    WHERE " +
+        String sql_string = "SELECT TOP 1 id_client FROM sms_line_quiet  with(nolock)  WHERE " +
                 "id_client = " + ClientId + " AND id_content_type = " + conType + " AND date_send <='" + date + "' " +
                 "AND sms_line_quiet.status = 1";
         try {
@@ -494,7 +514,7 @@ public class MyDBConnection {
     }
 
     public boolean setUpdateSingleSMSHidden(SmsLine smsLine) {
-        String sql_string = "SELECT id_sms_line FROM sms_line_quiet    WHERE " +
+        String sql_string = "SELECT id_sms_line FROM sms_line_quiet  with(nolock)  WHERE " +
                 "id_client = " + smsLine.getId_client() + " AND " +
                 "id_content_type = " + smsLine.getRate() + " AND " +
                 "date_send = '" + smsLine.getDate() + "'";
@@ -532,7 +552,7 @@ public class MyDBConnection {
     }
 
     public boolean SetClientType(int id_client, int id_content_type) {
-        String SQLString = "SELECT id_client FROM client_content_type    WHERE id_client=" + id_client + " AND id_content_type = " + id_content_type;
+        String SQLString = "SELECT id_client FROM client_content_type with(nolock)  WHERE id_client=" + id_client + " AND id_content_type = " + id_content_type;
         try {
             ResultSet rs80 = this.query(SQLString);
             if (rs80.next()) {
@@ -551,7 +571,7 @@ public class MyDBConnection {
     }
 
     public boolean GetClientType(int id_client, int id_content_type) {
-        String SQLString = "SELECT top 1 id_client FROM client_content_type    WHERE id_client=" + id_client + " AND id_content_type = " + id_content_type;
+        String SQLString = "SELECT top 1 id_client FROM client_content_type with(nolock)  WHERE id_client=" + id_client + " AND id_content_type = " + id_content_type;
         try {
             ResultSet rs80 = this.query(SQLString);
             if (rs80.next()) {
@@ -647,7 +667,7 @@ public class MyDBConnection {
     public List<SmsLine> getAllSingleHiddenSMS(String date) {
         List<SmsLine> lineList = new ArrayList<>();
         String sql_string = "SELECT top 500 id_sms_line, id_client, id_content_type, sum, " +
-                " date_send FROM sms_line_quiet    WHERE status = 0 AND date_send='" + date + "'";
+                " date_send FROM sms_line_quiet  with(nolock) WHERE status = 0 AND date_send='" + date + "'";
         try {
             ResultSet rsm = this.query(sql_string);
             while (rsm.next()) {
@@ -672,7 +692,7 @@ public class MyDBConnection {
 
     public SmsLine getSingleSMS(int sms_id) {
         String sql_string = "SELECT TOP 1 id_sms, id_client, sms_body, status, " +
-                "transaction_id FROM sms_line WHERE id_sms=" + sms_id;
+                "transaction_id FROM sms_line with(nolock) WHERE id_sms=" + sms_id;
         SmsLine sm = new SmsLine();
         try {
             ResultSet rs = this.query(sql_string);
@@ -694,7 +714,7 @@ public class MyDBConnection {
         List<SmsLine> smsLines = new ArrayList<>();
         String date = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
         String sql_string = "SELECT id_sms, id_client, sms_body, status, " +
-                "transaction_id, rate, id_service FROM sms_line WHERE status=" + line_status + " AND created_time > '" + date + "'";
+                "transaction_id, rate, id_service FROM sms_line with(nolock) WHERE status=" + line_status + " AND created_time > '" + date + "'";
         try {
             ResultSet rs = this.query(sql_string);
             while (rs.next()) {
@@ -717,7 +737,7 @@ public class MyDBConnection {
 
     public List<ActionClient> getClientsOperator() {
         List<ActionClient> Aclients = new ArrayList<>();
-        String sql_string = "SELECT client_id,status,content_type,action_type_id FROM client_3200 WHERE status =0";
+        String sql_string = "SELECT client_id,status,content_type,action_type_id FROM client_3200 with(nolock) WHERE status =0";
         try {
             ResultSet rs = this.query(sql_string);
             while (rs.next()) {
@@ -748,7 +768,7 @@ public class MyDBConnection {
         boolean result = false;
         String sql_string = "INSERT INTO sms_line(id_client, sms_body, status)" +
                 " SELECT client_session_140.id_client, '" + this.getSettings("welcome_message_fail_session") + "', '0' FROM client_session_140 " +
-                "WHERE GETDATE()> DATEADD(ss, 90, client_session_140.time)";
+                " with(nolock) WHERE GETDATE()> DATEADD(ss, 90, client_session_140.time)";
         try {
             this.Update(sql_string);
             result = true;
@@ -832,7 +852,7 @@ public class MyDBConnection {
 
     public ContentType getContentType(String table_name) {
         ContentType ct = new ContentType();
-        String sql_string = "SELECT * FROM content_type    WHERE table_name = '" + table_name + "'";
+        String sql_string = "SELECT * FROM content_type  with(nolock)  WHERE table_name = '" + table_name + "'";
         try {
             ResultSet rs = this.query(sql_string);
             if (rs.next()) {
@@ -870,7 +890,7 @@ public class MyDBConnection {
 
     public ContentType getContentTypeById(int service_id) {
         ContentType ct = new ContentType();
-        String sql_string = "SELECT * FROM content_type    WHERE id = '" + service_id + "'";
+        String sql_string = "SELECT * FROM content_type  with(nolock)  WHERE id = '" + service_id + "'";
         try {
             ResultSet rs = this.query(sql_string);
             if (rs.next()) {
@@ -1012,7 +1032,7 @@ public class MyDBConnection {
         //если нет, то отправляем пустым.
         //Результат отправки пишем в исходящие, в двух таблицах
 
-        String sql_string = "SELECT top 1 value FROM content_ascendant WHERE _date='" + dte + "'";
+        String sql_string = "SELECT top 1 value FROM content_ascendant with(nolock) WHERE _date='" + dte + "'";
         String vle = "";
         try {
             ResultSet rs = this.query(sql_string);

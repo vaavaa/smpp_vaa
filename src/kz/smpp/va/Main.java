@@ -11,8 +11,10 @@ import com.cloudhopper.smpp.type.LoggingOptions;
 import com.cloudhopper.smpp.type.SmppInvalidArgumentException;
 import kz.smpp.client.Client;
 import kz.smpp.jsoup.ParseHtml;
+import kz.smpp.jsoup.ParseHtmlHoroscope;
 import kz.smpp.mysql.MyDBConnection;
 import org.slf4j.LoggerFactory;
+import io.reactivex.Observable;
 
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -26,6 +28,9 @@ public class Main {
     static Client client;
     static ExecutorService pool;
     static MyDBConnection mDBConnection = new MyDBConnection();
+
+    private static long start = System.currentTimeMillis();
+
 
     private static void log(WindowFuture<Integer, PduRequest, PduResponse> future) {
         SubmitSm req = (SubmitSm) future.getRequest();
@@ -52,15 +57,35 @@ public class Main {
         }
     }
 
+    private static Boolean isSlowTime() {
+        return (System.currentTimeMillis() - start) % 30_000 >= 15_000;
+    }
+
+
     private static boolean run_switch(String command) {
 
         switch (command)
 
         {
+
             case "exit":
                 //Вышли
                 System.exit(0);
                 return true;
+
+            case "rx_test":
+            case "rx_java":
+
+                Observable<Long> fast = Observable.interval(1, TimeUnit.SECONDS);
+                Observable<Long> slow = Observable.interval(3, TimeUnit.SECONDS);
+
+                Observable<Long> clock = Observable.merge(
+                        slow.filter(tick-> isSlowTime()),
+                        fast.filter(tick-> !isSlowTime())
+                );
+                clock.subscribe(tick-> System.out.println(new Date()));
+
+               break;
 
             case "start":
 
@@ -84,10 +109,7 @@ public class Main {
                 return true;
             case "get metcast":
                 //mDBConnection.metcast();
-                ParseHtml phtml = new ParseHtml(mDBConnection.getSettings("anecdote"));
-                phtml.close();
-
-
+                ParseHtml phtml = new ParseHtml();
                 log.debug("Done. DB is updated with metcast");
                 return true;
             case "get anecdote":
@@ -96,8 +118,9 @@ public class Main {
                 log.debug("Done. DB is updated with anecdote");
                 return true;
             case "get horoscope":
-                mDBConnection.ascendant();
-                mDBConnection.ascendant_kz();
+                 new ParseHtmlHoroscope();
+                //mDBConnection.ascendant();
+                //mDBConnection.ascendant_kz();
                 log.debug("Done. DB is updated with horoscope");
                 return true;
             case "tariff":
