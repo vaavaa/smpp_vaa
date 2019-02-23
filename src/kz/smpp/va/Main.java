@@ -14,7 +14,6 @@ import kz.smpp.jsoup.ParseHtml;
 import kz.smpp.jsoup.ParseHtmlHoroscope;
 import kz.smpp.mysql.MyDBConnection;
 import org.slf4j.LoggerFactory;
-import io.reactivex.Observable;
 
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -74,18 +73,6 @@ public class Main {
                 return true;
 
             case "rx_test":
-            case "rx_java":
-
-                Observable<Long> fast = Observable.interval(1, TimeUnit.SECONDS);
-                Observable<Long> slow = Observable.interval(3, TimeUnit.SECONDS);
-
-                Observable<Long> clock = Observable.merge(
-                        slow.filter(tick-> isSlowTime()),
-                        fast.filter(tick-> !isSlowTime())
-                );
-                clock.subscribe(tick-> System.out.println(new Date()));
-
-               break;
 
             case "start":
 

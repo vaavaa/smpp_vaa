@@ -65,7 +65,7 @@ public class ParseHtmlHoroscope {
     private String GetInfoFromDate(WebDriver driver) {
 
         String Composted = "";
-        Composted = driver.findElement(By.className("article__text")).getText();
+        Composted = driver.findElement(By.className("multicol-2-fixed")).findElement(By.xpath("li/p")).getText();
         return Composted;
     }
 }
